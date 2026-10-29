@@ -3,6 +3,7 @@ import json
 import time
 import hmac
 import html
+import re
 import base64
 import requests
 import streamlit as st
@@ -21,28 +22,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Streamlit UI Chrome Isolation (Sanitized Static CSS Only)
-st.markdown("""
-    <style>
-        #MainMenu {visibility: hidden !important;}
-        footer {visibility: hidden !important;}
-        header {visibility: hidden !important;}
-        div[data-testid="stToolbar"] {visibility: hidden !important;}
-        div[data-testid="stDecoration"] {visibility: hidden !important;}
-        .block-container {
-            padding: 0 !important;
-            margin: 0 !important;
-            max-width: 100vw !important;
-        }
-        iframe {
-            border: none !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            display: block;
-        }
-    </style>
-""", unsafe_allow_html=True)
-
 # Session Security State Initialization
 if "orders_db" not in st.session_state:
     st.session_state["orders_db"] = []
@@ -60,8 +39,8 @@ if "last_admin_fetch" not in st.session_state:
 # ================= SECURE BASE64 IMAGE LOADER =================
 def get_image_src(filename, fallback_url):
     """
-    Safely reads images from local images/ directory and converts to Base64 data URI.
-    Sanitizes file paths to prevent directory traversal attacks.
+    Safely reads local product images, sanitizes path to prevent traversal,
+    and encodes them into Base64 for zero-CORS iframe rendering.
     """
     safe_name = os.path.basename(filename)
     base_name = os.path.splitext(safe_name)[0]
@@ -69,7 +48,7 @@ def get_image_src(filename, fallback_url):
         candidate_path = os.path.join("images", f"{base_name}.{ext}")
         if os.path.exists(candidate_path) and os.path.isfile(candidate_path):
             try:
-                # 5MB Local safety read limit
+                # 5MB local safety check
                 if os.path.getsize(candidate_path) <= 5 * 1024 * 1024:
                     with open(candidate_path, "rb") as img_file:
                         encoded = base64.b64encode(img_file.read()).decode()
@@ -87,7 +66,7 @@ IMG_PRODUCT_4 = get_image_src("Product4.jpg", "https://images.unsplash.com/photo
 # ================= SECURE BACKEND GOOGLE SHEET API =================
 @st.cache_data(ttl=25, show_spinner=False)
 def fetch_pending_orders_cached(url):
-    """Cached fetcher to protect Google Apps Script daily execution quota."""
+    """Protected fetcher to respect Google Apps Script rate limits."""
     if url and url.startswith("http"):
         try:
             res = requests.get(url, timeout=10)
@@ -107,7 +86,7 @@ def fetch_pending_orders():
     return [o for o in st.session_state["orders_db"] if str(o.get("status", "")).lower() == "pending"]
 
 def mark_order_dispatched(order_id):
-    """Updates order status to Dispatched in Google Sheet with input sanitization."""
+    """Updates order status to Dispatched with strict alphanumeric sanitization."""
     safe_order_id = "".join(c for c in str(order_id) if c.isalnum() or c == "-")
     success = False
     if GSHEET_URL and GSHEET_URL.startswith("http"):
@@ -137,7 +116,6 @@ def storefront_view():
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Resins by R</title>
         
-        <!-- Preconnect for performance -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -178,7 +156,6 @@ def storefront_view():
                 will-change: opacity;
             }}
 
-            /* Exquisite Serif Calligraphic Outline */
             .regal-r-path {{
                 stroke: #ffffff;
                 stroke-width: 4;
@@ -194,7 +171,6 @@ def storefront_view():
                 100% {{ stroke-dashoffset: 0; }}
             }}
 
-            /* Liquid Pearl & Molten Gold Cure Fill */
             .regal-r-fill {{
                 opacity: 0;
                 animation: fillRoyalGold 1.6s cubic-bezier(0.16, 1, 0.3, 1) forwards 2.0s;
@@ -241,7 +217,6 @@ def storefront_view():
                 background: rgba(229, 184, 105, 0.1);
             }}
 
-            /* ================= BUTTERY FADE-IN-UPWARDS ================= */
             .fade-in-up {{
                 opacity: 0;
                 transform: translateY(28px);
@@ -335,11 +310,9 @@ def storefront_view():
                         </filter>
                     </defs>
 
-                    <!-- Elegant Bespoke Serif "R" Vector Path -->
                     <path id="regal-r-path" class="regal-r-path" 
                           d="M 52 205 L 52 42 C 52 38 56 34 68 34 C 118 34 158 46 158 88 C 158 122 128 135 78 135 L 52 135 M 108 135 C 122 152 144 186 166 205 C 176 205 184 198 188 190" />
                     
-                    <!-- Molten Gold Cured Fill -->
                     <path class="regal-r-fill" filter="url(#royalGlow)" fill="url(#goldDustLiquid)" 
                           d="M 52 205 L 52 42 C 52 38 56 34 68 34 C 118 34 158 46 158 88 C 158 122 128 135 78 135 L 52 135 M 108 135 C 122 152 144 186 166 205 C 176 205 184 198 188 190" 
                           stroke="url(#goldDustLiquid)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
@@ -823,7 +796,6 @@ def storefront_view():
                 requestAnimationFrame(animateDust);
             }}
 
-            // Start immediately without delay
             setupExactIntroAnimation();
             animateDust();
 
@@ -837,7 +809,6 @@ def storefront_view():
                         for (let i = 0; i < arr.length; i++) {{
                             header += arr[i].toString(16).toUpperCase();
                         }}
-                        // JPEG: FFD8FF | PNG: 89504E47 | WebP: 52494646 (RIFF)
                         const isJPEG = header.startsWith("FFD8FF");
                         const isPNG = header.startsWith("89504E47");
                         const isWEBP = header.startsWith("52494646");
@@ -847,13 +818,17 @@ def storefront_view():
                 }});
             }}
 
-            // Sanitizes & re-encodes image to strip embedded EXIF or polyglot payloads
             function sanitizeAndCompressImage(file) {{
                 return new Promise((resolve, reject) => {{
                     const img = new Image();
                     const objectUrl = URL.createObjectURL(file);
                     img.onload = () => {{
                         URL.revokeObjectURL(objectUrl);
+                        // Pixel-bomb guard: reject absurd dimension bombs
+                        if (img.naturalWidth > 5000 || img.naturalHeight > 5000) {{
+                            reject(new Error("Image dimensions exceed 5000px safety limit"));
+                            return;
+                        }}
                         const cvs = document.createElement('canvas');
                         const maxDim = 1800;
                         let w = img.width;
@@ -902,7 +877,7 @@ def storefront_view():
                         const cleanBlob = await sanitizeAndCompressImage(f);
                         shieldUploadedBlobs.push({{ name: f.name, blob: cleanBlob }});
                     }} catch(e) {{
-                        alert("Error sanitizing image.");
+                        alert(`Error validating ${{f.name}}: ${{e.message}}`);
                         input.value = ""; shieldUploadedBlobs = [];
                         return;
                     }}
@@ -959,6 +934,15 @@ def storefront_view():
 
             function generateUniqueOrderId() {{
                 return `RBR-${{Math.floor(10000 + Math.random() * 90000)}}`;
+            }}
+
+            // Neutralize Google Sheets Formula Injection (=, +, -, @)
+            function sanitizeForSheet(str) {{
+                const s = String(str || '').trim();
+                if (s.startsWith('=') || s.startsWith('+') || s.startsWith('-') || s.startsWith('@')) {{
+                    return "'" + s;
+                }}
+                return s;
             }}
 
             function getProductSpecs(id) {{
@@ -1061,6 +1045,27 @@ def storefront_view():
                     return;
                 }}
 
+                const fullName = document.getElementById('cust-name').value.trim();
+                const email = document.getElementById('cust-email').value.trim();
+                const phone = document.getElementById('cust-phone').value.trim();
+                const address = document.getElementById('cust-address').value.trim();
+                const tid = document.getElementById('cust-tid').value.trim();
+                const notes = document.getElementById('cust-notes').value.trim() || 'No customization notes';
+
+                // Strict Regex Validations
+                const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{{2,}}$/;
+                if (!emailRegex.test(email)) {{
+                    alert("Please enter a valid email address."); return;
+                }}
+                const phoneRegex = /^[0-9+\-\s()]{{10,20}}$/;
+                if (!phoneRegex.test(phone)) {{
+                    alert("Please enter a valid phone number (digits and standard formatting only)."); return;
+                }}
+                const tidRegex = /^[a-zA-Z0-9\-_]{{4,40}}$/;
+                if (!tidRegex.test(tid)) {{
+                    alert("Please enter a valid Payment TID (alphanumeric characters, dashes, or underscores only)."); return;
+                }}
+
                 const screenshotInput = document.getElementById('cust-payment-screenshot');
                 if (!screenshotInput.files || screenshotInput.files.length === 0) {{
                     alert("Please attach screenshot of payment made."); return;
@@ -1070,7 +1075,6 @@ def storefront_view():
                     alert("Screenshot exceeds 5MB size limit."); return;
                 }}
 
-                // Verify magic bytes of payment screenshot
                 const isValidScreenshot = await verifyMagicBytes(rawScreenshot);
                 if (!isValidScreenshot) {{
                     alert("Suspicious or invalid payment screenshot file detected. Upload rejected.");
@@ -1082,41 +1086,33 @@ def storefront_view():
                 btn.disabled = true;
                 btn.innerHTML = `<span class="animate-pulse">Verifying & Curating...</span>`;
 
-                // Sanitize and re-encode screenshot through offscreen canvas
                 let cleanScreenshotBlob;
                 try {{
                     cleanScreenshotBlob = await sanitizeAndCompressImage(rawScreenshot);
                 }} catch(err) {{
-                    alert("Payment screenshot decoding failed.");
+                    alert(`Payment screenshot validation failure: ${{err.message}}`);
                     btn.disabled = false;
                     btn.innerHTML = `<span>Submit & Generate Order ID</span>`;
                     return;
                 }}
 
                 const orderId = generateUniqueOrderId();
-                const fullName = document.getElementById('cust-name').value.trim();
-                const email = document.getElementById('cust-email').value.trim();
-                const phone = document.getElementById('cust-phone').value.trim();
-                const address = document.getElementById('cust-address').value.trim();
-                const tid = document.getElementById('cust-tid').value.trim();
-                const notes = document.getElementById('cust-notes').value.trim() || 'No customization notes';
-
                 const activeItems = quickOrderItem ? [quickOrderItem] : cart;
                 const subtotal = activeItems.reduce((a, c) => a + (c.price * c.qty), 0);
                 const grandTotal = subtotal + DELIVERY_FEE;
                 const productsListString = activeItems.map(i => `${{i.name}} (x${{i.qty}})`).join(', ');
 
-                // 2. Dispatch to Google Sheet
+                // 2. Dispatch to Google Sheet with Formula Injection Shields
                 if (GSHEET_URL && GSHEET_URL.startsWith('http')) {{
                     try {{
                         const gsheetPayload = JSON.stringify({{
                             action: "add_order",
-                            name: fullName,
-                            address: address,
-                            products: productsListString,
-                            customization: notes,
-                            email: email,
-                            order_id: orderId
+                            name: sanitizeForSheet(fullName),
+                            address: sanitizeForSheet(address),
+                            products: sanitizeForSheet(productsListString),
+                            customization: sanitizeForSheet(notes),
+                            email: sanitizeForSheet(email),
+                            order_id: sanitizeForSheet(orderId)
                         }});
 
                         await fetch(GSHEET_URL, {{
@@ -1129,7 +1125,7 @@ def storefront_view():
                     }}
                 }}
 
-                // 3. Dispatch to Discord Webhook with Sanitized Blobs
+                // 3. Dispatch to Discord Webhook with @everyone Exploit Shield
                 if (DISCORD_WEBHOOK_URL && DISCORD_WEBHOOK_URL.startsWith('http')) {{
                     const formData = new FormData();
                     const embedPayload = {{
@@ -1151,9 +1147,11 @@ def storefront_view():
                         timestamp: new Date().toISOString()
                     }};
 
+                    // allowed_mentions: { parse: [] } prevents @everyone / @here / mass pings
                     formData.append("payload_json", JSON.stringify({{
-                        content: `**New Order Received from ${{fullName}}** | Order ID: \`${{orderId}}\``,
-                        embeds: [embedPayload]
+                        content: `**New Order Received from ${{fullName.replace(/@/g, '')}}** | Order ID: \`${{orderId}}\``,
+                        embeds: [embedPayload],
+                        allowed_mentions: {{ parse: [] }}
                     }}));
                     formData.append("files[0]", cleanScreenshotBlob, `Sanitized_Payment_TID_${{tid}}.jpg`);
                     
@@ -1170,16 +1168,13 @@ def storefront_view():
                     }}
                 }}
 
-                // Save cooldown timestamp
                 localStorage.setItem('rbr_last_order_ts', Math.floor(Date.now() / 1000).toString());
 
-                // WhatsApp Confirmation
                 const prewrittenMsg = `Assalamo-alaikum, I had ordered ${{productsListString}} under the order ID ${{orderId}}, can I get a confirmation on it?`;
                 const waUrl = `https://wa.me/${{SELLER_WHATSAPP}}?text=${{encodeURIComponent(prewrittenMsg)}}`;
                 document.getElementById('confirmed-order-id').textContent = orderId;
                 document.getElementById('whatsapp-order-link').href = waUrl;
 
-                // Reset UI state
                 toggleCheckoutModal(false);
                 document.getElementById('success-modal').classList.remove('hidden');
                 cart = []; quickOrderItem = null; renderCart();
@@ -1202,23 +1197,8 @@ def storefront_view():
 
 # ================= SECURED OWNER ADMIN DASHBOARD =================
 def admin_view():
-    st.markdown("""
-        <style>
-            body { background-color: #070709 !important; color: #f3f4f6 !important; }
-            .stApp { background-color: #070709 !important; }
-            .admin-card {
-                background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015));
-                backdrop-filter: blur(25px);
-                border: 1px solid rgba(255, 255, 255, 0.12);
-                border-radius: 16px;
-                padding: 24px;
-                margin-bottom: 24px;
-            }
-        </style>
-    """, unsafe_allow_html=True)
-
-    st.markdown("<h1 style='color: #e5b869; font-family: serif; text-align: center; margin-top: 30px;'>Resins by R • Owner Admin Portal</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #9ca3af; font-size: 13px; margin-bottom: 30px;'>PENDING ORDERS FULFILLMENT & DISPATCH QUEUE</p>", unsafe_allow_html=True)
+    st.title("Resins by R • Owner Admin Portal")
+    st.caption("PENDING ORDERS FULFILLMENT & DISPATCH QUEUE")
 
     now = time.time()
 
@@ -1228,30 +1208,28 @@ def admin_view():
         st.error(f"Security Alert: Maximum login attempts exceeded. Portal locked for {lock_remaining} seconds.")
         return
 
-    # 2. Timing-Attack Resistant Authentication
+    # 2. Timing-Attack Proof Authentication (Zero unsafe_allow_html)
     if not st.session_state["admin_authenticated"]:
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            st.markdown("<div class='admin-card'>", unsafe_allow_html=True)
-            st.markdown("<h3 style='color: white; margin-bottom: 15px;'>Owner Authentication</h3>", unsafe_allow_html=True)
-            user_input = st.text_input("Admin Username", key="login_user")
-            pass_input = st.text_input("Admin Password", type="password", key="login_pass")
-            if st.button("Unlock Admin Dashboard", use_container_width=True):
-                # Constant-time comparison to prevent side-channel timing attacks
-                valid_user = hmac.compare_digest(user_input.strip(), ADMIN_NAME)
-                valid_pass = hmac.compare_digest(pass_input.strip(), ADMIN_PASS)
-                if valid_user and valid_pass:
-                    st.session_state["admin_authenticated"] = True
-                    st.session_state["admin_failed_attempts"] = 0
-                    st.rerun()
-                else:
-                    st.session_state["admin_failed_attempts"] += 1
-                    if st.session_state["admin_failed_attempts"] >= 5:
-                        st.session_state["admin_locked_until"] = now + 900  # 15-minute lockout
-                        st.error("Too many failed attempts. Admin locked for 15 minutes.")
+            with st.container(border=True):
+                st.subheader("Owner Authentication")
+                user_input = st.text_input("Admin Username", key="login_user")
+                pass_input = st.text_input("Admin Password", type="password", key="login_pass")
+                if st.button("Unlock Admin Dashboard", use_container_width=True):
+                    valid_user = hmac.compare_digest(user_input.strip(), ADMIN_NAME)
+                    valid_pass = hmac.compare_digest(pass_input.strip(), ADMIN_PASS)
+                    if valid_user and valid_pass:
+                        st.session_state["admin_authenticated"] = True
+                        st.session_state["admin_failed_attempts"] = 0
+                        st.rerun()
                     else:
-                        st.error(f"Invalid credentials. Attempt {st.session_state['admin_failed_attempts']} of 5.")
-            st.markdown("</div>", unsafe_allow_html=True)
+                        st.session_state["admin_failed_attempts"] += 1
+                        if st.session_state["admin_failed_attempts"] >= 5:
+                            st.session_state["admin_locked_until"] = now + 900  # 15-minute lockout
+                            st.error("Too many failed attempts. Admin locked for 15 minutes.")
+                        else:
+                            st.error(f"Invalid credentials. Attempt {st.session_state['admin_failed_attempts']} of 5.")
         return
 
     # 3. Authenticated Dashboard Header
@@ -1312,7 +1290,7 @@ def admin_view():
 
     st.divider()
 
-    # Render Order Rows with Strict HTML Escaping
+    # Render Order Rows with 100% Native Safe Streamlit Syntax (Zero unsafe_allow_html)
     for idx, order in enumerate(pending_orders):
         cols = st.columns([1, 2, 3, 3, 2, 2, 2, 2, 2])
         cols[0].write(html.escape(str(order.get("sr_no", idx + 1))))
@@ -1322,7 +1300,9 @@ def admin_view():
         cols[4].write(html.escape(str(order.get("customization", "None"))))
         cols[5].write(html.escape(str(order.get("email", "N/A"))))
         cols[6].markdown(f"`{html.escape(str(order.get('order_id', '')))}`")
-        cols[7].markdown("<span style='color: #ffd984; font-weight: bold;'>Pending</span>", unsafe_allow_html=True)
+        
+        # Pure native colored markdown without unsafe_allow_html
+        cols[7].markdown(":orange[**Pending**]")
 
         safe_btn_key = f"disp_{order.get('order_id', idx)}_{idx}"
         if cols[8].button("Dispatch", key=safe_btn_key):
