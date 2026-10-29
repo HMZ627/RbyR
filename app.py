@@ -1,6 +1,8 @@
 import os
 import json
 import time
+import hmac
+import html
 import base64
 import requests
 import streamlit as st
@@ -19,7 +21,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Streamlit UI Clean Display Override
+# Streamlit UI Chrome Isolation (Sanitized Static CSS Only)
 st.markdown("""
     <style>
         #MainMenu {visibility: hidden !important;}
@@ -41,32 +43,38 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Session State Initialization
+# Session Security State Initialization
 if "orders_db" not in st.session_state:
     st.session_state["orders_db"] = []
 if "admin_authenticated" not in st.session_state:
     st.session_state["admin_authenticated"] = False
 if "dispatch_target" not in st.session_state:
     st.session_state["dispatch_target"] = None
+if "admin_failed_attempts" not in st.session_state:
+    st.session_state["admin_failed_attempts"] = 0
+if "admin_locked_until" not in st.session_state:
+    st.session_state["admin_locked_until"] = 0.0
 if "last_admin_fetch" not in st.session_state:
     st.session_state["last_admin_fetch"] = 0.0
 
-# ================= LOCAL IMAGE LOADER (BASE64) =================
+# ================= SECURE BASE64 IMAGE LOADER =================
 def get_image_src(filename, fallback_url):
     """
-    Checks images/ folder for the product image (supports jpg, jpeg, png, webp).
-    Encodes it to a Base64 Data URI so it renders safely inside the Streamlit iframe.
-    Falls back to high-res photography if the file is not yet in the GitHub repo.
+    Safely reads images from local images/ directory and converts to Base64 data URI.
+    Sanitizes file paths to prevent directory traversal attacks.
     """
-    base_name = os.path.splitext(filename)[0]
+    safe_name = os.path.basename(filename)
+    base_name = os.path.splitext(safe_name)[0]
     for ext in ["jpg", "jpeg", "png", "webp"]:
         candidate_path = os.path.join("images", f"{base_name}.{ext}")
-        if os.path.exists(candidate_path):
+        if os.path.exists(candidate_path) and os.path.isfile(candidate_path):
             try:
-                with open(candidate_path, "rb") as img_file:
-                    encoded = base64.b64encode(img_file.read()).decode()
-                mime = "image/png" if ext == "png" else f"image/{ext}"
-                return f"data:{mime};base64,{encoded}"
+                # 5MB Local safety read limit
+                if os.path.getsize(candidate_path) <= 5 * 1024 * 1024:
+                    with open(candidate_path, "rb") as img_file:
+                        encoded = base64.b64encode(img_file.read()).decode()
+                    mime = "image/png" if ext == "png" else f"image/{ext}"
+                    return f"data:{mime};base64,{encoded}"
             except Exception:
                 pass
     return fallback_url
@@ -76,19 +84,19 @@ IMG_PRODUCT_2 = get_image_src("Product2.jpg", "https://images.unsplash.com/photo
 IMG_PRODUCT_3 = get_image_src("Product3.jpg", "https://images.unsplash.com/photo-1529699211952-734e80c4d42b?q=80&w=800&auto=format&fit=crop")
 IMG_PRODUCT_4 = get_image_src("Product4.jpg", "https://images.unsplash.com/photo-1615529182904-14819c35db37?q=80&w=800&auto=format&fit=crop")
 
-# ================= BACKEND GOOGLE SHEET RATE-LIMITED API =================
+# ================= SECURE BACKEND GOOGLE SHEET API =================
 @st.cache_data(ttl=25, show_spinner=False)
 def fetch_pending_orders_cached(url):
     """Cached fetcher to protect Google Apps Script daily execution quota."""
     if url and url.startswith("http"):
         try:
-            res = requests.get(url, timeout=12)
+            res = requests.get(url, timeout=10)
             if res.status_code == 200:
                 data = res.json()
                 if isinstance(data, list):
                     return [o for o in data if str(o.get("status", "")).strip().lower() == "pending"]
-        except Exception as e:
-            st.error(f"Error fetching from Google Sheet: {e}")
+        except Exception:
+            pass
     return []
 
 def fetch_pending_orders():
@@ -99,20 +107,20 @@ def fetch_pending_orders():
     return [o for o in st.session_state["orders_db"] if str(o.get("status", "")).lower() == "pending"]
 
 def mark_order_dispatched(order_id):
-    """Updates order status to Dispatched in Google Sheet."""
+    """Updates order status to Dispatched in Google Sheet with input sanitization."""
+    safe_order_id = "".join(c for c in str(order_id) if c.isalnum() or c == "-")
     success = False
     if GSHEET_URL and GSHEET_URL.startswith("http"):
         try:
-            res = requests.get(f"{GSHEET_URL}?action=dispatch_order&order_id={order_id}", timeout=12)
+            res = requests.get(f"{GSHEET_URL}?action=dispatch_order&order_id={safe_order_id}", timeout=10)
             if res.status_code == 200:
                 success = True
-                # Clear cached orders to reflect change immediately
                 st.cache_data.clear()
         except Exception as e:
             st.error(f"Error updating Google Sheet dispatch: {e}")
     
     for item in st.session_state["orders_db"]:
-        if str(item.get("order_id")) == str(order_id):
+        if str(item.get("order_id")) == safe_order_id:
             item["status"] = "Dispatched"
             success = True
             break
@@ -128,6 +136,8 @@ def storefront_view():
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Resins by R</title>
+        
+        <!-- Preconnect for performance -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -154,47 +164,47 @@ def storefront_view():
 
             .font-luxury {{ font-family: 'Cinzel', serif; }}
 
-            /* ================= ELEVATED INTRO ANIMATION ================= */
+            /* ================= REGAL MONOGRAM INTRO OVERLAY ================= */
             #intro-overlay {{
                 position: fixed;
                 inset: 0;
-                background: radial-gradient(circle at center, #111218 0%, #000000 100%);
+                background: radial-gradient(circle at center, #13141b 0%, #000000 100%);
                 z-index: 999999;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
                 justify-content: center;
-                transition: opacity 1.3s cubic-bezier(0.77, 0, 0.175, 1);
                 pointer-events: all;
+                will-change: opacity;
             }}
 
-            /* Laser Etching Path from Top to Bottom */
-            .etching-path {{
+            /* Exquisite Serif Calligraphic Outline */
+            .regal-r-path {{
                 stroke: #ffffff;
-                stroke-width: 4.5;
+                stroke-width: 4;
                 stroke-linecap: round;
                 stroke-linejoin: round;
                 fill: transparent;
-                animation: etchStroke 2.5s cubic-bezier(0.45, 0.05, 0.2, 1) forwards;
-                filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 25px rgba(255, 217, 132, 0.6));
+                animation: etchRoyalStroke 2.2s cubic-bezier(0.42, 0, 0.2, 1) forwards;
+                filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 25px rgba(229, 184, 105, 0.6));
             }}
 
-            @keyframes etchStroke {{
-                0% {{ stroke-dashoffset: var(--path-length, 600); }}
+            @keyframes etchRoyalStroke {{
+                0% {{ stroke-dashoffset: var(--r-length, 750); }}
                 100% {{ stroke-dashoffset: 0; }}
             }}
 
-            /* Liquid Resin & Gold Dust Inflow */
-            .gold-fill-layer {{
+            /* Liquid Pearl & Molten Gold Cure Fill */
+            .regal-r-fill {{
                 opacity: 0;
-                animation: fillResin 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards 2.4s;
+                animation: fillRoyalGold 1.6s cubic-bezier(0.16, 1, 0.3, 1) forwards 2.0s;
             }}
 
-            @keyframes fillResin {{
+            @keyframes fillRoyalGold {{
                 0% {{
                     opacity: 0;
-                    transform: scale(0.95);
-                    filter: blur(10px);
+                    transform: scale(0.97);
+                    filter: blur(8px);
                 }}
                 100% {{
                     opacity: 1;
@@ -209,7 +219,6 @@ def storefront_view():
                 pointer-events: none;
             }}
 
-            /* Skip Intro Button */
             .skip-intro-btn {{
                 position: absolute;
                 top: 24px;
@@ -232,10 +241,10 @@ def storefront_view():
                 background: rgba(229, 184, 105, 0.1);
             }}
 
-            /* ================= ONE-TIME FADE-IN-UPWARDS ================= */
+            /* ================= BUTTERY FADE-IN-UPWARDS ================= */
             .fade-in-up {{
                 opacity: 0;
-                transform: translateY(32px);
+                transform: translateY(28px);
                 transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1), transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
                 will-change: opacity, transform;
             }}
@@ -312,26 +321,27 @@ def storefront_view():
             <canvas id="dust-canvas" class="dust-canvas"></canvas>
             
             <div class="relative flex flex-col items-center">
-                <svg width="220" height="250" viewBox="0 0 200 230" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg width="240" height="260" viewBox="0 0 220 240" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <defs>
                         <linearGradient id="goldDustLiquid" x1="0%" y1="0%" x2="100%" y2="100%">
                             <stop offset="0%" stop-color="#ffffff" />
-                            <stop offset="30%" stop-color="#fff6d1" />
-                            <stop offset="65%" stop-color="#ffd984" />
-                            <stop offset="100%" stop-color="#b68428" />
+                            <stop offset="25%" stop-color="#fff8db" />
+                            <stop offset="60%" stop-color="#ffd984" />
+                            <stop offset="100%" stop-color="#b88328" />
                         </linearGradient>
-                        <filter id="liquidGlow" x="-20%" y="-20%" width="140%" height="140%">
-                            <feGaussianBlur stdDeviation="4" result="blur" />
+                        <filter id="royalGlow" x="-20%" y="-20%" width="140%" height="140%">
+                            <feGaussianBlur stdDeviation="3.5" result="blur" />
                             <feComposite in="SourceGraphic" in2="blur" operator="over" />
                         </filter>
                     </defs>
 
-                    <!-- The White Laser Outline (Traced Top to Bottom) -->
-                    <path id="svg-r-path" class="etching-path" d="M 55 200 L 55 35 L 125 35 C 165 35 165 110 125 110 L 55 110 M 110 110 L 160 200" />
+                    <!-- Elegant Bespoke Serif "R" Vector Path -->
+                    <path id="regal-r-path" class="regal-r-path" 
+                          d="M 52 205 L 52 42 C 52 38 56 34 68 34 C 118 34 158 46 158 88 C 158 122 128 135 78 135 L 52 135 M 108 135 C 122 152 144 186 166 205 C 176 205 184 198 188 190" />
                     
-                    <!-- The Liquid Gold Dust Fill -->
-                    <path class="gold-fill-layer" filter="url(#liquidGlow)" fill="url(#goldDustLiquid)" 
-                          d="M 55 200 L 55 35 L 125 35 C 165 35 165 110 125 110 L 55 110 M 110 110 L 160 200" 
+                    <!-- Molten Gold Cured Fill -->
+                    <path class="regal-r-fill" filter="url(#royalGlow)" fill="url(#goldDustLiquid)" 
+                          d="M 52 205 L 52 42 C 52 38 56 34 68 34 C 118 34 158 46 158 88 C 158 122 128 135 78 135 L 52 135 M 108 135 C 122 152 144 186 166 205 C 176 205 184 198 188 190" 
                           stroke="url(#goldDustLiquid)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
 
@@ -381,7 +391,7 @@ def storefront_view():
                 </h1>
 
                 <p class="fade-in-up max-w-2xl mx-auto text-gray-400 text-sm md:text-base leading-relaxed mb-8">
-                    Museum-grade epoxy, metallic mica, botanical inclusions, and real 24k gold leaf foil. Every piece is an unrepeatable bespoke keepsake.
+                    Museum-grade bio-resin, metallic mica, botanical inclusions, and real 24k gold leaf foil. Every piece is an unrepeatable bespoke keepsake.
                 </p>
 
                 <div class="fade-in-up flex items-center justify-center gap-4">
@@ -470,10 +480,10 @@ def storefront_view():
                                     <span id="shield-photo-status" class="text-xs text-gray-400">0 pictures (+PKR 0/-)</span>
                                 </div>
                                 <div id="shield-uploader-box" class="hidden pt-3 border-t border-white/10">
-                                    <label class="block text-xs uppercase tracking-wider text-amber-300 font-semibold mb-1">Upload Shield Pictures:</label>
-                                    <input type="file" id="shield-file-input" multiple accept="image/*" onchange="handleShieldFiles(this)" 
+                                    <label class="block text-xs uppercase tracking-wider text-amber-300 font-semibold mb-1">Upload Shield Pictures (Max 5MB each):</label>
+                                    <input type="file" id="shield-file-input" multiple accept="image/jpeg,image/png,image/webp" onchange="handleSecureShieldFiles(this)" 
                                            class="w-full text-xs text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-300/10 file:text-amber-300 hover:file:bg-amber-300/20 cursor-pointer">
-                                    <p id="shield-files-status" class="text-[11px] text-gray-400 mt-1">Please upload up to 3 photos.</p>
+                                    <p id="shield-files-status" class="text-[11px] text-gray-400 mt-1">Accepts verified JPEG, PNG, or WebP.</p>
                                 </div>
                             </div>
                         </div>
@@ -659,31 +669,32 @@ def storefront_view():
                 <form id="order-form" onsubmit="submitClientOrder(event)" class="space-y-4 text-left">
                     <div>
                         <label class="block text-xs uppercase tracking-wider text-gray-300 font-semibold mb-1">1. Full Name <span class="text-amber-400">*</span></label>
-                        <input type="text" id="cust-name" required placeholder="Your full name" class="w-full px-4 py-3 bg-white/5 border border-white/15 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:border-amber-300">
+                        <input type="text" id="cust-name" required maxlength="80" placeholder="Your full name" class="w-full px-4 py-3 bg-white/5 border border-white/15 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:border-amber-300">
                     </div>
                     <div>
                         <label class="block text-xs uppercase tracking-wider text-gray-300 font-semibold mb-1">2. Email Address <span class="text-amber-400">*</span></label>
-                        <input type="email" id="cust-email" required placeholder="name@example.com" class="w-full px-4 py-3 bg-white/5 border border-white/15 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:border-amber-300">
+                        <input type="email" id="cust-email" required maxlength="100" placeholder="name@example.com" class="w-full px-4 py-3 bg-white/5 border border-white/15 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:border-amber-300">
                     </div>
                     <div>
                         <label class="block text-xs uppercase tracking-wider text-gray-300 font-semibold mb-1">3. Phone Number <span class="text-amber-400">*</span></label>
-                        <input type="tel" id="cust-phone" required placeholder="0300 1234567" class="w-full px-4 py-3 bg-white/5 border border-white/15 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:border-amber-300">
+                        <input type="tel" id="cust-phone" required maxlength="25" placeholder="0300 1234567" class="w-full px-4 py-3 bg-white/5 border border-white/15 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:border-amber-300">
                     </div>
                     <div>
                         <label class="block text-xs uppercase tracking-wider text-gray-300 font-semibold mb-1">4. Full Address <span class="text-amber-400">*</span></label>
-                        <textarea id="cust-address" required rows="2" placeholder="House/Flat #, Street address, Area, City" class="w-full px-4 py-3 bg-white/5 border border-white/15 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:border-amber-300"></textarea>
+                        <textarea id="cust-address" required maxlength="300" rows="2" placeholder="House/Flat #, Street address, Area, City" class="w-full px-4 py-3 bg-white/5 border border-white/15 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:border-amber-300"></textarea>
                     </div>
                     <div>
                         <label class="block text-xs uppercase tracking-wider text-gray-300 font-semibold mb-1">5. TID (Transaction ID) For Payment Made <span class="text-amber-400">*</span></label>
-                        <input type="text" id="cust-tid" required placeholder="Transaction ID (JazzCash / Raast)" class="w-full px-4 py-3 bg-white/5 border border-white/15 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:border-amber-300 font-mono">
+                        <input type="text" id="cust-tid" required maxlength="40" placeholder="Transaction ID (JazzCash / Raast)" class="w-full px-4 py-3 bg-white/5 border border-white/15 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:border-amber-300 font-mono">
                     </div>
                     <div>
-                        <label class="block text-xs uppercase tracking-wider text-amber-300 font-semibold mb-1">6. Upload Screenshot of Payment Made <span class="text-amber-400">*</span></label>
-                        <input type="file" id="cust-payment-screenshot" required accept="image/*" class="w-full text-xs text-gray-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-300 file:text-black hover:file:bg-amber-400 cursor-pointer">
+                        <label class="block text-xs uppercase tracking-wider text-amber-300 font-semibold mb-1">6. Upload Screenshot of Payment Made (Max 5MB) <span class="text-amber-400">*</span></label>
+                        <input type="file" id="cust-payment-screenshot" required accept="image/jpeg,image/png,image/webp" 
+                               class="w-full text-xs text-gray-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-300 file:text-black hover:file:bg-amber-400 cursor-pointer">
                     </div>
                     <div>
                         <label class="block text-xs uppercase tracking-wider text-gray-300 font-semibold mb-1">Customization Notes (Colours, Foil, or Styling)</label>
-                        <textarea id="cust-notes" rows="2" placeholder="Describe chosen color tones, glitter, or custom details." class="w-full px-4 py-3 bg-white/5 border border-white/15 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:border-amber-300"></textarea>
+                        <textarea id="cust-notes" maxlength="400" rows="2" placeholder="Describe chosen color tones, glitter, or custom details." class="w-full px-4 py-3 bg-white/5 border border-white/15 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:border-amber-300"></textarea>
                     </div>
                     <button type="submit" id="submit-btn" class="btn-gold w-full py-4 rounded-xl text-xs uppercase tracking-widest font-bold mt-2 shadow-xl flex items-center justify-center gap-2">
                         <span>Submit & Generate Order ID</span>
@@ -725,54 +736,55 @@ def storefront_view():
             const GSHEET_URL = "{GSHEET_URL}".trim();
             const SELLER_WHATSAPP = "923058866692";
             const DELIVERY_FEE = 500;
-            const SUBMIT_COOLDOWN_SECONDS = 60; // Rate limit protection: 1 order per 60s per browser
+            const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB hard limit
+            const SUBMIT_COOLDOWN_SECONDS = 60;
 
             let cart = [];
             let selectedRingSize = 'US 5';
             let shieldPhotosCount = 0;
-            let shieldUploadedFiles = [];
+            let shieldUploadedBlobs = [];
             let quickOrderItem = null;
             let introDismissed = false;
 
             // ================= PRECISE INTRO ANIMATION TIMELINE =================
             function setupExactIntroAnimation() {{
-                const path = document.getElementById('svg-r-path');
+                const path = document.getElementById('regal-r-path');
                 if (path) {{
                     const totalLength = path.getTotalLength();
-                    path.style.setProperty('--path-length', totalLength);
+                    path.style.setProperty('--r-length', totalLength);
                     path.style.strokeDasharray = totalLength;
                     path.style.strokeDashoffset = totalLength;
                 }}
 
-                // Branding caption fade-in at 4.5 seconds
                 setTimeout(() => {{
                     if (!introDismissed) {{
                         const cap = document.getElementById('intro-caption');
                         if (cap) cap.style.opacity = '1';
                     }}
-                }}, 4500);
+                }}, 4200);
 
-                // Full sequence completes and dissolves at 6.2 seconds
                 setTimeout(() => {{
                     if (!introDismissed) {{
                         dismissIntro();
                     }}
-                }}, 6200);
+                }}, 5800);
             }}
 
             function dismissIntro() {{
+                if (introDismissed) return;
                 introDismissed = true;
                 const intro = document.getElementById('intro-overlay');
                 if (intro) {{
+                    intro.style.transition = 'opacity 1.4s cubic-bezier(0.4, 0, 0.2, 1)';
                     intro.style.opacity = '0';
-                    setTimeout(() => {{
+                    intro.addEventListener('transitionend', () => {{
                         intro.style.display = 'none';
                         initScrollObserver();
-                    }}, 1300);
+                    }}, {{ once: true }});
                 }}
             }}
 
-            // Dust particle canvas
+            // Dust canvas
             const canvas = document.getElementById('dust-canvas');
             const ctx = canvas.getContext('2d');
             let particles = [];
@@ -780,11 +792,11 @@ def storefront_view():
             resizeCanvas();
             window.addEventListener('resize', resizeCanvas);
 
-            for(let i=0; i<65; i++) {{
+            for(let i=0; i<60; i++) {{
                 particles.push({{
                     x: Math.random() * canvas.width,
                     y: Math.random() * canvas.height,
-                    radius: Math.random() * 2.5 + 0.5,
+                    radius: Math.random() * 2.2 + 0.6,
                     color: Math.random() > 0.4 ? '#e5b869' : '#ffffff',
                     vy: -Math.random() * 0.8 - 0.2,
                     vx: (Math.random() - 0.5) * 0.5,
@@ -811,21 +823,99 @@ def storefront_view():
                 requestAnimationFrame(animateDust);
             }}
 
-            // Start intro immediately on execution
-            document.addEventListener('DOMContentLoaded', () => {{
-                setupExactIntroAnimation();
-                animateDust();
-            }});
-            // Safety trigger in case DOMContentLoaded already fired
+            // Start immediately without delay
             setupExactIntroAnimation();
             animateDust();
+
+            // ================= FILE INTEGRITY & ANTI-MALWARE VERIFICATION =================
+            function verifyMagicBytes(file) {{
+                return new Promise((resolve) => {{
+                    const reader = new FileReader();
+                    reader.onloadend = function(e) {{
+                        const arr = (new Uint8Array(e.target.result)).subarray(0, 4);
+                        let header = "";
+                        for (let i = 0; i < arr.length; i++) {{
+                            header += arr[i].toString(16).toUpperCase();
+                        }}
+                        // JPEG: FFD8FF | PNG: 89504E47 | WebP: 52494646 (RIFF)
+                        const isJPEG = header.startsWith("FFD8FF");
+                        const isPNG = header.startsWith("89504E47");
+                        const isWEBP = header.startsWith("52494646");
+                        resolve(isJPEG || isPNG || isWEBP);
+                    }};
+                    reader.readAsArrayBuffer(file.slice(0, 4));
+                }});
+            }}
+
+            // Sanitizes & re-encodes image to strip embedded EXIF or polyglot payloads
+            function sanitizeAndCompressImage(file) {{
+                return new Promise((resolve, reject) => {{
+                    const img = new Image();
+                    const objectUrl = URL.createObjectURL(file);
+                    img.onload = () => {{
+                        URL.revokeObjectURL(objectUrl);
+                        const cvs = document.createElement('canvas');
+                        const maxDim = 1800;
+                        let w = img.width;
+                        let h = img.height;
+                        if (w > maxDim || h > maxDim) {{
+                            if (w > h) {{ h = Math.round((h * maxDim) / w); w = maxDim; }}
+                            else {{ w = Math.round((w * maxDim) / h); h = maxDim; }}
+                        }}
+                        cvs.width = w;
+                        cvs.height = h;
+                        const c2d = cvs.getContext('2d');
+                        c2d.drawImage(img, 0, 0, w, h);
+                        cvs.toBlob((blob) => {{
+                            resolve(blob);
+                        }}, 'image/jpeg', 0.88);
+                    }};
+                    img.onerror = () => {{
+                        URL.revokeObjectURL(objectUrl);
+                        reject(new Error("Image stream decode failure"));
+                    }};
+                    img.src = objectUrl;
+                }});
+            }}
+
+            async function handleSecureShieldFiles(input) {{
+                const files = Array.from(input.files);
+                if (files.length > 3) {{
+                    alert("Max 3 pictures allowed.");
+                    input.value = ""; shieldUploadedBlobs = [];
+                    return;
+                }}
+                shieldUploadedBlobs = [];
+                for (const f of files) {{
+                    if (f.size > MAX_FILE_SIZE) {{
+                        alert(`File "${{f.name}}" exceeds 5MB limit.`);
+                        input.value = ""; shieldUploadedBlobs = [];
+                        return;
+                    }}
+                    const isValidFormat = await verifyMagicBytes(f);
+                    if (!isValidFormat) {{
+                        alert(`File "${{f.name}}" failed binary validation. Only verified JPEG, PNG, or WebP images are permitted.`);
+                        input.value = ""; shieldUploadedBlobs = [];
+                        return;
+                    }}
+                    try {{
+                        const cleanBlob = await sanitizeAndCompressImage(f);
+                        shieldUploadedBlobs.push({{ name: f.name, blob: cleanBlob }});
+                    }} catch(e) {{
+                        alert("Error sanitizing image.");
+                        input.value = ""; shieldUploadedBlobs = [];
+                        return;
+                    }}
+                }}
+                document.getElementById('shield-files-status').textContent = `${{shieldUploadedBlobs.length}} verified file(s) attached.`;
+            }}
 
             function initScrollObserver() {{
                 const elements = document.querySelectorAll('.fade-in-up');
                 const observer = new IntersectionObserver((entries) => {{
                     entries.forEach((entry, idx) => {{
                         if (entry.isIntersecting) {{
-                            setTimeout(() => {{ entry.target.classList.add('appeared'); }}, idx * 60);
+                            setTimeout(() => {{ entry.target.classList.add('appeared'); }}, idx * 55);
                             observer.unobserve(entry.target);
                         }}
                     }});
@@ -858,24 +948,13 @@ def storefront_view():
 
             function adjustPhotos(delta) {{
                 shieldPhotosCount = Math.max(0, Math.min(3, shieldPhotosCount + delta));
-                document.getElementById('shield-photo-count').innerText = shieldPhotosCount;
+                document.getElementById('shield-photo-count').textContent = shieldPhotosCount;
                 const total = 2000 + (shieldPhotosCount * 100);
-                document.getElementById('shield-price-display').innerText = `PKR ${{total.toLocaleString()}}/-`;
-                document.getElementById('shield-photo-status').innerText = `${{shieldPhotosCount}} picture(s) (+PKR ${{shieldPhotosCount * 100}}/-)`;
+                document.getElementById('shield-price-display').textContent = `PKR ${{total.toLocaleString()}}/-`;
+                document.getElementById('shield-photo-status').textContent = `${{shieldPhotosCount}} picture(s) (+PKR ${{shieldPhotosCount * 100}}/-)`;
                 const uploader = document.getElementById('shield-uploader-box');
                 if (shieldPhotosCount > 0) {{ uploader.classList.remove('hidden'); }}
-                else {{ uploader.classList.add('hidden'); shieldUploadedFiles = []; }}
-            }}
-
-            function handleShieldFiles(input) {{
-                const files = Array.from(input.files);
-                if (files.length > 3) {{
-                    alert("Max 3 pictures allowed.");
-                    input.value = ""; shieldUploadedFiles = [];
-                    return;
-                }}
-                shieldUploadedFiles = files;
-                document.getElementById('shield-files-status').innerText = `${{files.length}} file(s) attached.`;
+                else {{ uploader.classList.add('hidden'); shieldUploadedBlobs = []; }}
             }}
 
             function generateUniqueOrderId() {{
@@ -907,11 +986,11 @@ def storefront_view():
 
             function renderCart() {{
                 const list = document.getElementById('cart-items-container');
-                document.getElementById('nav-cart-count').innerText = cart.reduce((a, c) => a + c.qty, 0);
+                document.getElementById('nav-cart-count').textContent = cart.reduce((a, c) => a + c.qty, 0);
                 if (cart.length === 0) {{
                     list.innerHTML = `<div class="h-64 flex flex-col items-center justify-center text-gray-500 text-sm">Your bag is empty.</div>`;
-                    document.getElementById('cart-subtotal').innerText = 'PKR 0/-';
-                    document.getElementById('cart-grandtotal').innerText = `PKR ${{DELIVERY_FEE}}/-`;
+                    document.getElementById('cart-subtotal').textContent = 'PKR 0/-';
+                    document.getElementById('cart-grandtotal').textContent = `PKR ${{DELIVERY_FEE}}/-`;
                     return;
                 }}
                 let sub = 0; let html = '';
@@ -931,8 +1010,8 @@ def storefront_view():
                         </div>`;
                 }});
                 list.innerHTML = html;
-                document.getElementById('cart-subtotal').innerText = `PKR ${{sub.toLocaleString()}}/-`;
-                document.getElementById('cart-grandtotal').innerText = `PKR ${{(sub + DELIVERY_FEE).toLocaleString()}}/-`;
+                document.getElementById('cart-subtotal').textContent = `PKR ${{sub.toLocaleString()}}/-`;
+                document.getElementById('cart-grandtotal').textContent = `PKR ${{(sub + DELIVERY_FEE).toLocaleString()}}/-`;
             }}
 
             function removeCartItem(idx) {{ cart.splice(idx, 1); renderCart(); }}
@@ -951,9 +1030,9 @@ def storefront_view():
 
             function openCheckoutModal(items) {{
                 const sub = items.reduce((a, c) => a + (c.price * c.qty), 0);
-                document.getElementById('modal-item-summary').innerText = items.map(i => `${{i.name}} (x${{i.qty}})`).join(', ');
-                document.getElementById('modal-subtotal').innerText = `PKR ${{sub.toLocaleString()}}/-`;
-                document.getElementById('modal-total').innerText = `PKR ${{(sub + DELIVERY_FEE).toLocaleString()}}/-`;
+                document.getElementById('modal-item-summary').textContent = items.map(i => `${{i.name}} (x${{i.qty}})`).join(', ');
+                document.getElementById('modal-subtotal').textContent = `PKR ${{sub.toLocaleString()}}/-`;
+                document.getElementById('modal-total').textContent = `PKR ${{(sub + DELIVERY_FEE).toLocaleString()}}/-`;
                 toggleCheckoutModal(true);
             }}
 
@@ -964,21 +1043,21 @@ def storefront_view():
 
             function showToast(msg) {{
                 const t = document.getElementById('toast');
-                document.getElementById('toast-msg').innerText = msg;
+                document.getElementById('toast-msg').textContent = msg;
                 t.classList.remove('opacity-0', 'pointer-events-none');
                 setTimeout(() => t.classList.add('opacity-0', 'pointer-events-none'), 3000);
             }}
 
-            // ================= RATE-LIMITED SUBMISSION LOGIC =================
+            // ================= ZERO-TRUST SUBMISSION WORKFLOW =================
             async function submitClientOrder(e) {{
                 e.preventDefault();
 
-                // 1. Check Rate Limiter (Cooldown timer)
+                // 1. Client-Side Rate Limiter
                 const lastOrderTime = localStorage.getItem('rbr_last_order_ts');
                 const now = Math.floor(Date.now() / 1000);
                 if (lastOrderTime && (now - parseInt(lastOrderTime)) < SUBMIT_COOLDOWN_SECONDS) {{
                     const remaining = SUBMIT_COOLDOWN_SECONDS - (now - parseInt(lastOrderTime));
-                    alert(`Studio Queue Protection:\\nPlease wait ${{remaining}} seconds before placing another bespoke commission.`);
+                    alert(`Studio Queue Cooldown:\\nPlease wait ${{remaining}}s before submitting another order.`);
                     return;
                 }}
 
@@ -986,10 +1065,33 @@ def storefront_view():
                 if (!screenshotInput.files || screenshotInput.files.length === 0) {{
                     alert("Please attach screenshot of payment made."); return;
                 }}
+                const rawScreenshot = screenshotInput.files[0];
+                if (rawScreenshot.size > MAX_FILE_SIZE) {{
+                    alert("Screenshot exceeds 5MB size limit."); return;
+                }}
+
+                // Verify magic bytes of payment screenshot
+                const isValidScreenshot = await verifyMagicBytes(rawScreenshot);
+                if (!isValidScreenshot) {{
+                    alert("Suspicious or invalid payment screenshot file detected. Upload rejected.");
+                    screenshotInput.value = "";
+                    return;
+                }}
 
                 const btn = document.getElementById('submit-btn');
                 btn.disabled = true;
-                btn.innerHTML = `<span class="animate-pulse">Securing In Database...</span>`;
+                btn.innerHTML = `<span class="animate-pulse">Verifying & Curating...</span>`;
+
+                // Sanitize and re-encode screenshot through offscreen canvas
+                let cleanScreenshotBlob;
+                try {{
+                    cleanScreenshotBlob = await sanitizeAndCompressImage(rawScreenshot);
+                }} catch(err) {{
+                    alert("Payment screenshot decoding failed.");
+                    btn.disabled = false;
+                    btn.innerHTML = `<span>Submit & Generate Order ID</span>`;
+                    return;
+                }}
 
                 const orderId = generateUniqueOrderId();
                 const fullName = document.getElementById('cust-name').value.trim();
@@ -1004,7 +1106,7 @@ def storefront_view():
                 const grandTotal = subtotal + DELIVERY_FEE;
                 const productsListString = activeItems.map(i => `${{i.name}} (x${{i.qty}})`).join(', ');
 
-                // 2. Dispatch to Google Sheet (using text/plain to avoid CORS OPTIONS blocker)
+                // 2. Dispatch to Google Sheet
                 if (GSHEET_URL && GSHEET_URL.startsWith('http')) {{
                     try {{
                         const gsheetPayload = JSON.stringify({{
@@ -1027,7 +1129,7 @@ def storefront_view():
                     }}
                 }}
 
-                // 3. Dispatch to Discord Webhook
+                // 3. Dispatch to Discord Webhook with Sanitized Blobs
                 if (DISCORD_WEBHOOK_URL && DISCORD_WEBHOOK_URL.startsWith('http')) {{
                     const formData = new FormData();
                     const embedPayload = {{
@@ -1045,7 +1147,7 @@ def storefront_view():
                             {{ name: "Total Amount", value: `PKR ${{grandTotal}}/-`, inline: true }},
                             {{ name: "Custom Notes", value: notes, inline: false }}
                         ],
-                        footer: {{ text: "Resins by R • Database Queue" }},
+                        footer: {{ text: "Resins by R • Zero-Trust Pipeline" }},
                         timestamp: new Date().toISOString()
                     }};
 
@@ -1053,10 +1155,11 @@ def storefront_view():
                         content: `**New Order Received from ${{fullName}}** | Order ID: \`${{orderId}}\``,
                         embeds: [embedPayload]
                     }}));
-                    formData.append("files[0]", screenshotInput.files[0], `Payment_TID_${{tid}}_${{screenshotInput.files[0].name}}`);
+                    formData.append("files[0]", cleanScreenshotBlob, `Sanitized_Payment_TID_${{tid}}.jpg`);
+                    
                     let fIdx = 1;
-                    shieldUploadedFiles.forEach(f => {{
-                        formData.append(`files[${{fIdx}}]`, f, `Shield_${{fIdx}}_${{f.name}}`);
+                    shieldUploadedBlobs.forEach(item => {{
+                        formData.append(`files[${{fIdx}}]`, item.blob, `Sanitized_Shield_${{fIdx}}.jpg`);
                         fIdx++;
                     }});
 
@@ -1067,13 +1170,13 @@ def storefront_view():
                     }}
                 }}
 
-                // Register timestamp for client-side rate limiting
+                // Save cooldown timestamp
                 localStorage.setItem('rbr_last_order_ts', Math.floor(Date.now() / 1000).toString());
 
-                // Prepare WhatsApp confirmation link
+                // WhatsApp Confirmation
                 const prewrittenMsg = `Assalamo-alaikum, I had ordered ${{productsListString}} under the order ID ${{orderId}}, can I get a confirmation on it?`;
                 const waUrl = `https://wa.me/${{SELLER_WHATSAPP}}?text=${{encodeURIComponent(prewrittenMsg)}}`;
-                document.getElementById('confirmed-order-id').innerText = orderId;
+                document.getElementById('confirmed-order-id').textContent = orderId;
                 document.getElementById('whatsapp-order-link').href = waUrl;
 
                 // Reset UI state
@@ -1081,9 +1184,9 @@ def storefront_view():
                 document.getElementById('success-modal').classList.remove('hidden');
                 cart = []; quickOrderItem = null; renderCart();
                 document.getElementById('order-form').reset();
-                shieldUploadedFiles = [];
+                shieldUploadedBlobs = [];
                 document.getElementById('shield-uploader-box').classList.add('hidden');
-                document.getElementById('shield-photo-count').innerText = "0";
+                document.getElementById('shield-photo-count').textContent = "0";
 
                 btn.disabled = false;
                 btn.innerHTML = `<span>Submit & Generate Order ID</span>`;
@@ -1097,7 +1200,7 @@ def storefront_view():
     """
     components.html(HTML_TEMPLATE, height=1000, scrolling=True)
 
-# ================= OWNER ADMIN DASHBOARD VIEW =================
+# ================= SECURED OWNER ADMIN DASHBOARD =================
 def admin_view():
     st.markdown("""
         <style>
@@ -1117,7 +1220,15 @@ def admin_view():
     st.markdown("<h1 style='color: #e5b869; font-family: serif; text-align: center; margin-top: 30px;'>Resins by R • Owner Admin Portal</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #9ca3af; font-size: 13px; margin-bottom: 30px;'>PENDING ORDERS FULFILLMENT & DISPATCH QUEUE</p>", unsafe_allow_html=True)
 
-    # 1. Login Authentication
+    now = time.time()
+
+    # 1. Brute-Force Lockout Guard
+    if now < st.session_state["admin_locked_until"]:
+        lock_remaining = int(st.session_state["admin_locked_until"] - now)
+        st.error(f"Security Alert: Maximum login attempts exceeded. Portal locked for {lock_remaining} seconds.")
+        return
+
+    # 2. Timing-Attack Resistant Authentication
     if not st.session_state["admin_authenticated"]:
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
@@ -1126,22 +1237,29 @@ def admin_view():
             user_input = st.text_input("Admin Username", key="login_user")
             pass_input = st.text_input("Admin Password", type="password", key="login_pass")
             if st.button("Unlock Admin Dashboard", use_container_width=True):
-                if user_input.strip() == ADMIN_NAME and pass_input.strip() == ADMIN_PASS:
+                # Constant-time comparison to prevent side-channel timing attacks
+                valid_user = hmac.compare_digest(user_input.strip(), ADMIN_NAME)
+                valid_pass = hmac.compare_digest(pass_input.strip(), ADMIN_PASS)
+                if valid_user and valid_pass:
                     st.session_state["admin_authenticated"] = True
+                    st.session_state["admin_failed_attempts"] = 0
                     st.rerun()
                 else:
-                    st.error("Invalid Username or Password.")
+                    st.session_state["admin_failed_attempts"] += 1
+                    if st.session_state["admin_failed_attempts"] >= 5:
+                        st.session_state["admin_locked_until"] = now + 900  # 15-minute lockout
+                        st.error("Too many failed attempts. Admin locked for 15 minutes.")
+                    else:
+                        st.error(f"Invalid credentials. Attempt {st.session_state['admin_failed_attempts']} of 5.")
             st.markdown("</div>", unsafe_allow_html=True)
         return
 
-    # 2. Authenticated Dashboard Header
+    # 3. Authenticated Dashboard Header
     col_l, col_m, col_r = st.columns([4, 2, 1])
     with col_l:
-        st.write(f"Logged in as: **{ADMIN_NAME}**")
+        st.write(f"Logged in as: **{html.escape(ADMIN_NAME)}**")
     with col_m:
-        # Rate-limited sync button to protect Google Sheets quota
         if st.button("Sync with Google Sheet"):
-            now = time.time()
             if now - st.session_state["last_admin_fetch"] < 5.0:
                 st.warning("Please wait 5 seconds before refreshing Google Sheets.")
             else:
@@ -1155,22 +1273,23 @@ def admin_view():
 
     pending_orders = fetch_pending_orders()
 
-    # 3. Confirmation Dialog for Dispatching
+    # 4. Confirmation Dialog for Dispatching
     if st.session_state["dispatch_target"]:
         target = st.session_state["dispatch_target"]
-        st.warning(f"**Confirm Dispatch For Order #{target.get('order_id')}?**")
+        order_id_safe = html.escape(str(target.get('order_id', '')))
+        st.warning(f"**Confirm Dispatch For Order #{order_id_safe}?**")
         st.markdown(f"""
-            - **Client Name:** {target.get('name')}
-            - **Products:** {target.get('products')}
-            - **Address:** {target.get('address')}
-            - **Email:** {target.get('email')}
+            - **Client Name:** {html.escape(str(target.get('name', '')))}
+            - **Products:** {html.escape(str(target.get('products', '')))}
+            - **Address:** {html.escape(str(target.get('address', '')))}
+            - **Email:** {html.escape(str(target.get('email', '')))}
         """)
         c1, c2 = st.columns(2)
         with c1:
             if st.button("Yes, Confirm & Update Google Sheets", use_container_width=True):
                 success = mark_order_dispatched(target.get("order_id"))
                 if success:
-                    st.success(f"Order #{target.get('order_id')} successfully marked as Dispatched in Google Sheets!")
+                    st.success(f"Order #{order_id_safe} successfully marked as Dispatched in Google Sheets!")
                 st.session_state["dispatch_target"] = None
                 st.rerun()
         with c2:
@@ -1182,7 +1301,7 @@ def admin_view():
     st.subheader(f"Pending Orders ({len(pending_orders)})")
 
     if not pending_orders:
-        st.info(" No pending orders to dispatch at this time. All orders are fulfilled!")
+        st.info("No pending orders to dispatch at this time. All orders are fulfilled!")
         return
 
     # Table Header
@@ -1193,19 +1312,20 @@ def admin_view():
 
     st.divider()
 
-    # Render Order Rows
+    # Render Order Rows with Strict HTML Escaping
     for idx, order in enumerate(pending_orders):
         cols = st.columns([1, 2, 3, 3, 2, 2, 2, 2, 2])
-        cols[0].write(str(order.get("sr_no", idx + 1)))
-        cols[1].write(order.get("name", "N/A"))
-        cols[2].write(order.get("address", "N/A"))
-        cols[3].write(order.get("products", "N/A"))
-        cols[4].write(order.get("customization", "None"))
-        cols[5].write(order.get("email", "N/A"))
-        cols[6].markdown(f"`{order.get('order_id')}`")
+        cols[0].write(html.escape(str(order.get("sr_no", idx + 1))))
+        cols[1].write(html.escape(str(order.get("name", "N/A"))))
+        cols[2].write(html.escape(str(order.get("address", "N/A"))))
+        cols[3].write(html.escape(str(order.get("products", "N/A"))))
+        cols[4].write(html.escape(str(order.get("customization", "None"))))
+        cols[5].write(html.escape(str(order.get("email", "N/A"))))
+        cols[6].markdown(f"`{html.escape(str(order.get('order_id', '')))}`")
         cols[7].markdown("<span style='color: #ffd984; font-weight: bold;'>Pending</span>", unsafe_allow_html=True)
 
-        if cols[8].button("Dispatch", key=f"disp_{order.get('order_id')}_{idx}"):
+        safe_btn_key = f"disp_{order.get('order_id', idx)}_{idx}"
+        if cols[8].button("Dispatch", key=safe_btn_key):
             st.session_state["dispatch_target"] = order
             st.rerun()
 
