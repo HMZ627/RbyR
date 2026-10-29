@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import base64
 import requests
 import streamlit as st
@@ -47,13 +48,15 @@ if "admin_authenticated" not in st.session_state:
     st.session_state["admin_authenticated"] = False
 if "dispatch_target" not in st.session_state:
     st.session_state["dispatch_target"] = None
+if "last_admin_fetch" not in st.session_state:
+    st.session_state["last_admin_fetch"] = 0.0
 
 # ================= LOCAL IMAGE LOADER (BASE64) =================
 def get_image_src(filename, fallback_url):
     """
     Checks images/ folder for the product image (supports jpg, jpeg, png, webp).
     Encodes it to a Base64 Data URI so it renders safely inside the Streamlit iframe.
-    Falls back gracefully to high-res photography if the file is not found yet.
+    Falls back to high-res photography if the file is not yet in the GitHub repo.
     """
     base_name = os.path.splitext(filename)[0]
     for ext in ["jpg", "jpeg", "png", "webp"]:
@@ -68,24 +71,31 @@ def get_image_src(filename, fallback_url):
                 pass
     return fallback_url
 
-# Image Mappings for the 4 Products
 IMG_PRODUCT_1 = get_image_src("Product1.jpg", "https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=800&auto=format&fit=crop")
 IMG_PRODUCT_2 = get_image_src("Product2.jpg", "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?q=80&w=800&auto=format&fit=crop")
 IMG_PRODUCT_3 = get_image_src("Product3.jpg", "https://images.unsplash.com/photo-1529699211952-734e80c4d42b?q=80&w=800&auto=format&fit=crop")
 IMG_PRODUCT_4 = get_image_src("Product4.jpg", "https://images.unsplash.com/photo-1615529182904-14819c35db37?q=80&w=800&auto=format&fit=crop")
 
-# ================= BACKEND GOOGLE SHEET FUNCTIONS =================
-def fetch_pending_orders():
-    """Fetches orders from Google Sheet via GET endpoint."""
-    if GSHEET_URL and GSHEET_URL.startswith("http"):
+# ================= BACKEND GOOGLE SHEET RATE-LIMITED API =================
+@st.cache_data(ttl=25, show_spinner=False)
+def fetch_pending_orders_cached(url):
+    """Cached fetcher to protect Google Apps Script daily execution quota."""
+    if url and url.startswith("http"):
         try:
-            res = requests.get(GSHEET_URL, timeout=12)
+            res = requests.get(url, timeout=12)
             if res.status_code == 200:
                 data = res.json()
                 if isinstance(data, list):
                     return [o for o in data if str(o.get("status", "")).strip().lower() == "pending"]
         except Exception as e:
             st.error(f"Error fetching from Google Sheet: {e}")
+    return []
+
+def fetch_pending_orders():
+    if GSHEET_URL:
+        orders = fetch_pending_orders_cached(GSHEET_URL)
+        if orders:
+            return orders
     return [o for o in st.session_state["orders_db"] if str(o.get("status", "")).lower() == "pending"]
 
 def mark_order_dispatched(order_id):
@@ -96,6 +106,8 @@ def mark_order_dispatched(order_id):
             res = requests.get(f"{GSHEET_URL}?action=dispatch_order&order_id={order_id}", timeout=12)
             if res.status_code == 200:
                 success = True
+                # Clear cached orders to reflect change immediately
+                st.cache_data.clear()
         except Exception as e:
             st.error(f"Error updating Google Sheet dispatch: {e}")
     
@@ -138,14 +150,11 @@ def storefront_view():
                 color: #f3f4f6;
                 font-family: 'Plus Jakarta Sans', sans-serif;
                 overflow-x: hidden;
-                opacity: 0;
-                transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1);
             }}
-
-            body.site-ready {{ opacity: 1; }}
 
             .font-luxury {{ font-family: 'Cinzel', serif; }}
 
+            /* ================= ELEVATED INTRO ANIMATION ================= */
             #intro-overlay {{
                 position: fixed;
                 inset: 0;
@@ -155,38 +164,42 @@ def storefront_view():
                 flex-direction: column;
                 align-items: center;
                 justify-content: center;
-                transition: opacity 1.2s cubic-bezier(0.77, 0, 0.175, 1);
+                transition: opacity 1.3s cubic-bezier(0.77, 0, 0.175, 1);
                 pointer-events: all;
             }}
 
+            /* Laser Etching Path from Top to Bottom */
             .etching-path {{
                 stroke: #ffffff;
                 stroke-width: 4.5;
                 stroke-linecap: round;
                 stroke-linejoin: round;
                 fill: transparent;
-                stroke-dasharray: 1000;
-                stroke-dashoffset: 1000;
-                animation: etchStroke 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-                filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.9));
+                animation: etchStroke 2.5s cubic-bezier(0.45, 0.05, 0.2, 1) forwards;
+                filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 25px rgba(255, 217, 132, 0.6));
             }}
 
             @keyframes etchStroke {{
-                0% {{ stroke-dashoffset: 1000; }}
+                0% {{ stroke-dashoffset: var(--path-length, 600); }}
                 100% {{ stroke-dashoffset: 0; }}
             }}
 
+            /* Liquid Resin & Gold Dust Inflow */
             .gold-fill-layer {{
                 opacity: 0;
-                animation: fillResin 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards 1.8s;
+                animation: fillResin 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards 2.4s;
             }}
 
             @keyframes fillResin {{
-                0% {{ opacity: 0; transform: scale(0.96); filter: blur(8px); }}
+                0% {{
+                    opacity: 0;
+                    transform: scale(0.95);
+                    filter: blur(10px);
+                }}
                 100% {{
                     opacity: 1;
                     transform: scale(1);
-                    filter: blur(0px) drop-shadow(0 0 35px rgba(229, 184, 105, 0.9)) drop-shadow(0 0 60px rgba(255, 217, 132, 0.6));
+                    filter: blur(0px) drop-shadow(0 0 35px rgba(229, 184, 105, 0.95)) drop-shadow(0 0 70px rgba(255, 217, 132, 0.7));
                 }}
             }}
 
@@ -196,6 +209,30 @@ def storefront_view():
                 pointer-events: none;
             }}
 
+            /* Skip Intro Button */
+            .skip-intro-btn {{
+                position: absolute;
+                top: 24px;
+                right: 28px;
+                padding: 6px 16px;
+                font-size: 11px;
+                letter-spacing: 0.15em;
+                text-transform: uppercase;
+                color: rgba(255, 255, 255, 0.6);
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                border-radius: 9999px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                z-index: 1000000;
+            }}
+            .skip-intro-btn:hover {{
+                color: #e5b869;
+                border-color: #e5b869;
+                background: rgba(229, 184, 105, 0.1);
+            }}
+
+            /* ================= ONE-TIME FADE-IN-UPWARDS ================= */
             .fade-in-up {{
                 opacity: 0;
                 transform: translateY(32px);
@@ -236,6 +273,13 @@ def storefront_view():
                 transform: translateY(-2px);
             }}
 
+            .btn-gold:disabled {{
+                opacity: 0.5;
+                cursor: not-allowed;
+                transform: none !important;
+                box-shadow: none !important;
+            }}
+
             .btn-glass {{
                 background: rgba(255, 255, 255, 0.04);
                 border: 1px solid rgba(255, 255, 255, 0.15);
@@ -264,7 +308,9 @@ def storefront_view():
 
         <!-- INTRO ANIMATION SCREEN -->
         <div id="intro-overlay">
+            <button class="skip-intro-btn" onclick="dismissIntro()">Skip ✕</button>
             <canvas id="dust-canvas" class="dust-canvas"></canvas>
+            
             <div class="relative flex flex-col items-center">
                 <svg width="220" height="250" viewBox="0 0 200 230" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <defs>
@@ -280,14 +326,16 @@ def storefront_view():
                         </filter>
                     </defs>
 
-                    <!-- The White Outline (Traced Top to Bottom) -->
-                    <path class="etching-path" d="M 55 200 L 55 35 L 125 35 C 165 35 165 110 125 110 L 55 110 M 110 110 L 160 200" />
+                    <!-- The White Laser Outline (Traced Top to Bottom) -->
+                    <path id="svg-r-path" class="etching-path" d="M 55 200 L 55 35 L 125 35 C 165 35 165 110 125 110 L 55 110 M 110 110 L 160 200" />
+                    
                     <!-- The Liquid Gold Dust Fill -->
                     <path class="gold-fill-layer" filter="url(#liquidGlow)" fill="url(#goldDustLiquid)" 
                           d="M 55 200 L 55 35 L 125 35 C 165 35 165 110 125 110 L 55 110 M 110 110 L 160 200" 
                           stroke="url(#goldDustLiquid)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
-                <span id="intro-caption" class="font-luxury text-xs tracking-[0.45em] uppercase text-amber-200 mt-6 opacity-0 transition-opacity duration-700">
+
+                <span id="intro-caption" class="font-luxury text-xs tracking-[0.45em] uppercase text-amber-200 mt-6 opacity-0 transition-opacity duration-1000">
                     Resins By R • Bespoke
                 </span>
             </div>
@@ -677,12 +725,52 @@ def storefront_view():
             const GSHEET_URL = "{GSHEET_URL}".trim();
             const SELLER_WHATSAPP = "923058866692";
             const DELIVERY_FEE = 500;
+            const SUBMIT_COOLDOWN_SECONDS = 60; // Rate limit protection: 1 order per 60s per browser
 
             let cart = [];
             let selectedRingSize = 'US 5';
             let shieldPhotosCount = 0;
             let shieldUploadedFiles = [];
             let quickOrderItem = null;
+            let introDismissed = false;
+
+            // ================= PRECISE INTRO ANIMATION TIMELINE =================
+            function setupExactIntroAnimation() {{
+                const path = document.getElementById('svg-r-path');
+                if (path) {{
+                    const totalLength = path.getTotalLength();
+                    path.style.setProperty('--path-length', totalLength);
+                    path.style.strokeDasharray = totalLength;
+                    path.style.strokeDashoffset = totalLength;
+                }}
+
+                // Branding caption fade-in at 4.5 seconds
+                setTimeout(() => {{
+                    if (!introDismissed) {{
+                        const cap = document.getElementById('intro-caption');
+                        if (cap) cap.style.opacity = '1';
+                    }}
+                }}, 4500);
+
+                // Full sequence completes and dissolves at 6.2 seconds
+                setTimeout(() => {{
+                    if (!introDismissed) {{
+                        dismissIntro();
+                    }}
+                }}, 6200);
+            }}
+
+            function dismissIntro() {{
+                introDismissed = true;
+                const intro = document.getElementById('intro-overlay');
+                if (intro) {{
+                    intro.style.opacity = '0';
+                    setTimeout(() => {{
+                        intro.style.display = 'none';
+                        initScrollObserver();
+                    }}, 1300);
+                }}
+            }}
 
             // Dust particle canvas
             const canvas = document.getElementById('dust-canvas');
@@ -692,7 +780,7 @@ def storefront_view():
             resizeCanvas();
             window.addEventListener('resize', resizeCanvas);
 
-            for(let i=0; i<60; i++) {{
+            for(let i=0; i<65; i++) {{
                 particles.push({{
                     x: Math.random() * canvas.width,
                     y: Math.random() * canvas.height,
@@ -705,6 +793,7 @@ def storefront_view():
             }}
 
             function animateDust() {{
+                if (introDismissed) return;
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 particles.forEach(p => {{
                     ctx.beginPath();
@@ -721,17 +810,15 @@ def storefront_view():
                 }});
                 requestAnimationFrame(animateDust);
             }}
-            animateDust();
 
-            window.addEventListener('load', () => {{
-                setTimeout(() => {{ const cap = document.getElementById('intro-caption'); if(cap) cap.style.opacity = '1'; }}, 2100);
-                setTimeout(() => {{
-                    const intro = document.getElementById('intro-overlay');
-                    intro.style.opacity = '0';
-                    document.body.classList.add('site-ready');
-                    setTimeout(() => {{ intro.style.display = 'none'; initScrollObserver(); }}, 1100);
-                }}, 3400);
+            // Start intro immediately on execution
+            document.addEventListener('DOMContentLoaded', () => {{
+                setupExactIntroAnimation();
+                animateDust();
             }});
+            // Safety trigger in case DOMContentLoaded already fired
+            setupExactIntroAnimation();
+            animateDust();
 
             function initScrollObserver() {{
                 const elements = document.querySelectorAll('.fade-in-up');
@@ -882,9 +969,19 @@ def storefront_view():
                 setTimeout(() => t.classList.add('opacity-0', 'pointer-events-none'), 3000);
             }}
 
-            // ================= SUBMIT TO GOOGLE SHEET & DISCORD =================
+            // ================= RATE-LIMITED SUBMISSION LOGIC =================
             async function submitClientOrder(e) {{
                 e.preventDefault();
+
+                // 1. Check Rate Limiter (Cooldown timer)
+                const lastOrderTime = localStorage.getItem('rbr_last_order_ts');
+                const now = Math.floor(Date.now() / 1000);
+                if (lastOrderTime && (now - parseInt(lastOrderTime)) < SUBMIT_COOLDOWN_SECONDS) {{
+                    const remaining = SUBMIT_COOLDOWN_SECONDS - (now - parseInt(lastOrderTime));
+                    alert(`Studio Queue Protection:\\nPlease wait ${{remaining}} seconds before placing another bespoke commission.`);
+                    return;
+                }}
+
                 const screenshotInput = document.getElementById('cust-payment-screenshot');
                 if (!screenshotInput.files || screenshotInput.files.length === 0) {{
                     alert("Please attach screenshot of payment made."); return;
@@ -892,7 +989,7 @@ def storefront_view():
 
                 const btn = document.getElementById('submit-btn');
                 btn.disabled = true;
-                btn.innerHTML = `<span class="animate-pulse">Updating Database & Queue...</span>`;
+                btn.innerHTML = `<span class="animate-pulse">Securing In Database...</span>`;
 
                 const orderId = generateUniqueOrderId();
                 const fullName = document.getElementById('cust-name').value.trim();
@@ -907,7 +1004,7 @@ def storefront_view():
                 const grandTotal = subtotal + DELIVERY_FEE;
                 const productsListString = activeItems.map(i => `${{i.name}} (x${{i.qty}})`).join(', ');
 
-                // 1. SEND TO GOOGLE SHEET (Using text/plain to avoid CORS OPTIONS blocker)
+                // 2. Dispatch to Google Sheet (using text/plain to avoid CORS OPTIONS blocker)
                 if (GSHEET_URL && GSHEET_URL.startsWith('http')) {{
                     try {{
                         const gsheetPayload = JSON.stringify({{
@@ -930,7 +1027,7 @@ def storefront_view():
                     }}
                 }}
 
-                // 2. SEND TO DISCORD WEBHOOK
+                // 3. Dispatch to Discord Webhook
                 if (DISCORD_WEBHOOK_URL && DISCORD_WEBHOOK_URL.startsWith('http')) {{
                     const formData = new FormData();
                     const embedPayload = {{
@@ -966,17 +1063,20 @@ def storefront_view():
                     try {{
                         await fetch(DISCORD_WEBHOOK_URL, {{ method: 'POST', body: formData }});
                     }} catch (err) {{
-                        console.warn("Discord Webhook failed:", err);
+                        console.warn("Discord Webhook dispatch note:", err);
                     }}
                 }}
 
-                // Pre-written WhatsApp confirmation
+                // Register timestamp for client-side rate limiting
+                localStorage.setItem('rbr_last_order_ts', Math.floor(Date.now() / 1000).toString());
+
+                // Prepare WhatsApp confirmation link
                 const prewrittenMsg = `Assalamo-alaikum, I had ordered ${{productsListString}} under the order ID ${{orderId}}, can I get a confirmation on it?`;
                 const waUrl = `https://wa.me/${{SELLER_WHATSAPP}}?text=${{encodeURIComponent(prewrittenMsg)}}`;
                 document.getElementById('confirmed-order-id').innerText = orderId;
                 document.getElementById('whatsapp-order-link').href = waUrl;
 
-                // Reset UI
+                // Reset UI state
                 toggleCheckoutModal(false);
                 document.getElementById('success-modal').classList.remove('hidden');
                 cart = []; quickOrderItem = null; renderCart();
@@ -1039,24 +1139,15 @@ def admin_view():
     with col_l:
         st.write(f"Logged in as: **{ADMIN_NAME}**")
     with col_m:
-        if st.button("Test Google Sheet Connection"):
-            if not GSHEET_URL:
-                st.error("GSHEET_URL is empty! Please check your secrets.")
+        # Rate-limited sync button to protect Google Sheets quota
+        if st.button("Sync with Google Sheet"):
+            now = time.time()
+            if now - st.session_state["last_admin_fetch"] < 5.0:
+                st.warning("Please wait 5 seconds before refreshing Google Sheets.")
             else:
-                try:
-                    test_payload = json.dumps({
-                        "action": "add_order",
-                        "name": "Connection Test",
-                        "address": "Studio Testing",
-                        "products": "Sample Item",
-                        "customization": "Diagnostic Ping",
-                        "email": "test@resinsbyr.com",
-                        "order_id": "TEST-PING"
-                    })
-                    res = requests.post(GSHEET_URL, data=test_payload, headers={"Content-Type": "text/plain"}, timeout=10)
-                    st.success(f"Google Sheet Connected! Response: {res.text}")
-                except Exception as ex:
-                    st.error(f"Connection failed: {ex}")
+                st.session_state["last_admin_fetch"] = now
+                st.cache_data.clear()
+                st.rerun()
     with col_r:
         if st.button("Logout"):
             st.session_state["admin_authenticated"] = False
@@ -1091,9 +1182,7 @@ def admin_view():
     st.subheader(f"Pending Orders ({len(pending_orders)})")
 
     if not pending_orders:
-        st.info("No pending orders to dispatch at this time. All orders are fulfilled!")
-        if st.button("Refresh Orders"):
-            st.rerun()
+        st.info(" No pending orders to dispatch at this time. All orders are fulfilled!")
         return
 
     # Table Header
@@ -1119,9 +1208,6 @@ def admin_view():
         if cols[8].button("Dispatch", key=f"disp_{order.get('order_id')}_{idx}"):
             st.session_state["dispatch_target"] = order
             st.rerun()
-
-    if st.button("Sync with Google Sheet"):
-        st.rerun()
 
 # ================= MULTI-ROUTE DISPATCHER =================
 main_page = st.Page(storefront_view, title="Resins by R", default=True)
