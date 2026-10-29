@@ -21,7 +21,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Static layout reset: eliminates Streamlit padding and delivers a true full-bleed canvas
+# Universal Viewport Override: Eliminates all 4-sided margins and anchors iframe to 100% of browser window
 st.markdown("""
     <style>
         header[data-testid="stHeader"], footer, #MainMenu, [data-testid="stToolbar"], [data-testid="stDecoration"] {
@@ -38,23 +38,21 @@ st.markdown("""
             background-color: #070709 !important;
             overflow: hidden !important;
         }
-        div[data-testid="stCustomComponentV1"] {
-            width: 100vw !important;
-            height: 100vh !important;
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-        div[data-testid="stCustomComponentV1"] > iframe {
+        iframe {
             position: fixed !important;
             top: 0 !important;
             left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
             width: 100vw !important;
             height: 100vh !important;
+            max-width: 100vw !important;
+            max-height: 100vh !important;
             border: none !important;
             margin: 0 !important;
             padding: 0 !important;
             display: block !important;
-            z-index: 1 !important;
+            z-index: 999999 !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -163,10 +161,10 @@ def storefront_view():
 
             * { box-sizing: border-box; margin: 0; padding: 0; }
 
-            /* Guaranteed Full Vertical Scrolling */
+            /* Guaranteed Full Vertical Scrolling from Hero to Footer */
             html {
                 width: 100%;
-                height: 100%;
+                min-height: 100%;
                 overflow-x: hidden;
                 overflow-y: auto !important;
                 scroll-behavior: smooth;
@@ -188,14 +186,15 @@ def storefront_view():
             .font-luxury { font-family: 'Cinzel', serif; }
             .font-adam { font-family: 'Montserrat', sans-serif; font-weight: 900; }
 
-            /* ================= REQUESTED GOLDEN 'R' & WHITE SHADOW INTRO ================= */
+            /* ================= EXACT CENTERED INTRO OVERLAY ================= */
             #intro-overlay {
                 position: fixed;
-                inset: 0;
+                top: 0;
+                left: 0;
                 width: 100vw;
                 height: 100vh;
                 background-color: #070709;
-                z-index: 999999;
+                z-index: 9999999;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
@@ -204,23 +203,31 @@ def storefront_view():
                 will-change: opacity;
             }
 
-            /* Golden 'R' with Radiant White Shadow */
+            .intro-center-box {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+            }
+
+            /* Golden "R" with Radiant White Shadow */
             .intro-golden-r {
                 font-family: 'Montserrat', sans-serif;
-                font-size: 135px;
+                font-size: clamp(90px, 16vw, 150px);
                 font-weight: 900;
                 line-height: 1;
                 letter-spacing: -0.02em;
                 background: linear-gradient(135deg, #ffffff 0%, #fff4cf 25%, #e5b869 60%, #b88328 100%);
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;
-                /* White coloured shadow glow */
+                /* White-coloured shadow glow as requested */
                 filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.95)) 
-                        drop-shadow(0 0 45px rgba(255, 255, 255, 0.6))
-                        drop-shadow(0 0 70px rgba(229, 184, 105, 0.5));
+                        drop-shadow(0 0 45px rgba(255, 255, 255, 0.65))
+                        drop-shadow(0 0 70px rgba(229, 184, 105, 0.4));
                 opacity: 0;
                 transform: scale(0.92);
-                animation: rGoldenFadeIn 1.6s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.2s;
+                animation: rGoldenFadeIn 1.6s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.15s;
             }
 
             @keyframes rGoldenFadeIn {
@@ -234,18 +241,18 @@ def storefront_view():
                 }
             }
 
-            /* "Resins By R" text fades in below */
+            /* "Resins By R" text fades in smoothly below */
             .intro-text-caption {
                 font-family: 'Cinzel', serif;
-                font-size: 17px;
-                font-weight: 600;
+                font-size: clamp(14px, 3.2vw, 19px);
+                font-weight: 700;
                 letter-spacing: 0.38em;
                 text-transform: uppercase;
                 color: #f3f4f6;
                 margin-top: 24px;
                 opacity: 0;
                 transform: translateY(12px);
-                animation: textCaptionFadeIn 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards 1.6s;
+                animation: textCaptionFadeIn 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards 1.4s;
                 text-shadow: 0 0 15px rgba(229, 184, 105, 0.4);
             }
 
@@ -262,8 +269,8 @@ def storefront_view():
 
             .skip-intro-btn {
                 position: absolute;
-                top: 24px;
-                right: 28px;
+                top: 28px;
+                right: 32px;
                 padding: 6px 16px;
                 font-size: 11px;
                 letter-spacing: 0.15em;
@@ -274,7 +281,7 @@ def storefront_view():
                 border-radius: 9999px;
                 cursor: pointer;
                 transition: all 0.3s ease;
-                z-index: 1000000;
+                z-index: 10000000;
             }
             .skip-intro-btn:hover {
                 color: #e5b869;
@@ -282,13 +289,7 @@ def storefront_view():
                 background: rgba(229, 184, 105, 0.1);
             }
 
-            /* ================= UNCLIPPED STOREFRONT CARD STYLES ================= */
-            .fade-in-up {
-                opacity: 1;
-                transform: translateY(0);
-                transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
-            }
-
+            /* ================= FULL-PAGE UNRESTRICTED CONTENT ================= */
             .resin-card {
                 background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015));
                 backdrop-filter: blur(25px);
@@ -350,15 +351,15 @@ def storefront_view():
     </head>
     <body>
 
-        <!-- INTRO OVERLAY SCREEN -->
+        <!-- INTRO OVERLAY SCREEN (Anchored Dead-Center in Viewport) -->
         <div id="intro-overlay">
             <button class="skip-intro-btn" onclick="dismissIntro()">Skip ✕</button>
             
-            <div class="flex flex-col items-center justify-center text-center">
-                <!-- Golden 'R' with White Shadow -->
+            <div class="intro-center-box">
+                <!-- Golden "R" with White Shadow -->
                 <div class="intro-golden-r">R</div>
                 
-                <!-- 'Resins By R' Fades in Below -->
+                <!-- "Resins By R" Fades In Below -->
                 <div class="intro-text-caption">Resins By R</div>
             </div>
         </div>
@@ -366,9 +367,9 @@ def storefront_view():
         <div class="ambient-glow top-0 left-[-100px]"></div>
         <div class="ambient-glow bottom-0 right-[-100px]"></div>
 
-        <!-- MAIN STORE VIEW (Full-Bleed, Smooth Infinite Scroll) -->
-        <div id="page-main" class="relative z-10 w-full pb-36">
-            <header class="sticky top-0 z-40 backdrop-blur-xl bg-black/70 border-b border-white/10 w-full">
+        <!-- MAIN STORE VIEW (Full-Bleed, Uncut Scrolling to Footer) -->
+        <div id="page-main" class="relative z-10 w-full pb-48">
+            <header class="sticky top-0 z-40 backdrop-blur-xl bg-black/75 border-b border-white/10 w-full">
                 <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                     <a href="javascript:showPage('main')" class="flex items-center space-x-3">
                         <div class="w-10 h-10 rounded-full border border-amber-300/40 flex items-center justify-center bg-gradient-to-tr from-amber-600/30 to-amber-200/10">
@@ -417,7 +418,7 @@ def storefront_view():
                 </div>
             </section>
 
-            <!-- Product Grid (Always 100% Visible, No Scroll Lock) -->
+            <!-- Product Grid (Always 100% Rendered, Fully Scrollable) -->
             <main id="products-section" class="max-w-7xl mx-auto px-6 py-12 relative z-10">
                 <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 border-b border-white/10 pb-6">
                     <div>
@@ -582,7 +583,7 @@ def storefront_view():
         </div>
 
         <!-- POLICY PAGE -->
-        <div id="page-policy" class="hidden min-h-screen pt-12 pb-36 px-6 max-w-4xl mx-auto relative z-10">
+        <div id="page-policy" class="hidden min-h-screen pt-12 pb-48 px-6 max-w-4xl mx-auto relative z-10">
             <button onclick="showPage('main')" class="mb-8 btn-glass px-5 py-2.5 rounded-full text-xs uppercase tracking-widest text-amber-300 flex items-center gap-2">
                 <i class="ph ph-arrow-left"></i> Return to Store
             </button>
@@ -619,7 +620,7 @@ def storefront_view():
         </div>
 
         <!-- 404 PAGE -->
-        <div id="page-404" class="hidden min-h-screen flex items-center justify-center px-6 relative z-10 text-center pb-24">
+        <div id="page-404" class="hidden min-h-screen flex items-center justify-center px-6 relative z-10 text-center pb-32">
             <div class="resin-card p-10 md:p-14 rounded-3xl max-w-lg border border-white/10">
                 <span class="font-luxury text-7xl font-bold text-amber-300/80 block mb-2">404</span>
                 <h2 class="font-luxury text-2xl text-white mb-3">Resin Void: Piece Unfound</h2>
@@ -758,11 +759,8 @@ def storefront_view():
             let quickOrderItem = null;
             let introDismissed = false;
 
-            // ================= NEW SMOOTH ANIMATION TIMELINE =================
+            // ================= EXACT CENTERED ANIMATION TIMELINE =================
             function startIntroSequence() {
-                // Intro stays on screen, displaying Golden 'R' with White Shadow
-                // Caption "Resins By R" smoothly fades in below it
-                // After 3.8s, the whole intro smoothly dissolves into the store
                 setTimeout(() => {
                     if (!introDismissed) {
                         dismissIntro();
@@ -1010,7 +1008,7 @@ def storefront_view():
                 const now = Math.floor(Date.now() / 1000);
                 if (lastOrderTime && (now - parseInt(lastOrderTime)) < SUBMIT_COOLDOWN_SECONDS) {
                     const remaining = SUBMIT_COOLDOWN_SECONDS - (now - parseInt(lastOrderTime));
-                    alert(`Studio Queue Cooldown:\nPlease wait ${remaining}s before submitting another order.`);
+                    alert(`⚠️ Studio Queue Cooldown:\nPlease wait ${remaining}s before submitting another bespoke order.`);
                     return;
                 }
 
@@ -1070,7 +1068,7 @@ def storefront_view():
                 const grandTotal = subtotal + DELIVERY_FEE;
                 const productsListString = activeItems.map(i => `${i.name} (x${i.qty})`).join(', ');
 
-                // Send to Google Sheet
+                // Send to Google Sheet with Formula Shields
                 if (GSHEET_URL && GSHEET_URL.startsWith('http')) {
                     try {
                         const gsheetPayload = JSON.stringify({
@@ -1093,11 +1091,11 @@ def storefront_view():
                     }
                 }
 
-                // Send to Discord Webhook
+                // Send to Discord Webhook with @everyone Protection
                 if (DISCORD_WEBHOOK_URL && DISCORD_WEBHOOK_URL.startsWith('http')) {
                     const formData = new FormData();
                     const embedPayload = {
-                        title: `New Order: ${orderId}`,
+                        title: `✨ New Bespoke Order: ${orderId}`,
                         color: 15054953,
                         fields: [
                             { name: "Order ID", value: orderId, inline: true },
@@ -1116,7 +1114,7 @@ def storefront_view():
                     };
 
                     formData.append("payload_json", JSON.stringify({
-                        content: `**New Order Received from ${fullName.replace(/@/g, '')}** | Order ID: \`${orderId}\``,
+                        content: `🚨 **New Order Received from ${fullName.replace(/@/g, '')}** | Order ID: \`${orderId}\``,
                         embeds: [embedPayload],
                         allowed_mentions: { parse: [] }
                     }));
@@ -1172,7 +1170,7 @@ def storefront_view():
         .replace("__GSHEET_URL__", GSHEET_URL)
     )
 
-    components.html(rendered_html, height=1200, scrolling=True)
+    components.html(rendered_html, height=2500, scrolling=True)
 
 # ================= SECURED OWNER ADMIN DASHBOARD =================
 def admin_view():
@@ -1184,7 +1182,7 @@ def admin_view():
     # 1. Brute-Force Lockout Guard
     if now < st.session_state["admin_locked_until"]:
         lock_remaining = int(st.session_state["admin_locked_until"] - now)
-        st.error(f"Security Alert: Maximum login attempts exceeded. Portal locked for {lock_remaining} seconds.")
+        st.error(f"🛑 Security Alert: Maximum login attempts exceeded. Portal locked for {lock_remaining} seconds.")
         return
 
     # 2. Timing-Attack Proof Authentication (Zero unsafe_allow_html)
@@ -1206,7 +1204,7 @@ def admin_view():
                         st.session_state["admin_failed_attempts"] += 1
                         if st.session_state["admin_failed_attempts"] >= 5:
                             st.session_state["admin_locked_until"] = now + 900
-                            st.error("Too many failed attempts. Admin locked for 15 minutes.")
+                            st.error("🛑 Too many failed attempts. Admin locked for 15 minutes.")
                         else:
                             st.error(f"Invalid credentials. Attempt {st.session_state['admin_failed_attempts']} of 5.")
         return
@@ -1216,7 +1214,7 @@ def admin_view():
     with col_l:
         st.write(f"Logged in as: **{html.escape(ADMIN_NAME)}**")
     with col_m:
-        if st.button("Sync with Google Sheet"):
+        if st.button("🔄 Sync with Google Sheet"):
             if now - st.session_state["last_admin_fetch"] < 5.0:
                 st.warning("Please wait 5 seconds before refreshing Google Sheets.")
             else:
@@ -1234,7 +1232,7 @@ def admin_view():
     if st.session_state["dispatch_target"]:
         target = st.session_state["dispatch_target"]
         order_id_safe = html.escape(str(target.get('order_id', '')))
-        st.warning(f"**Confirm Dispatch For Order #{order_id_safe}?**")
+        st.warning(f"⚠️ **Confirm Dispatch For Order #{order_id_safe}?**")
         st.markdown(f"""
             - **Client Name:** {html.escape(str(target.get('name', '')))}
             - **Products:** {html.escape(str(target.get('products', '')))}
@@ -1243,14 +1241,14 @@ def admin_view():
         """)
         c1, c2 = st.columns(2)
         with c1:
-            if st.button("Yes, Confirm & Update Google Sheets", use_container_width=True):
+            if st.button("✅ Yes, Confirm & Update Google Sheets", use_container_width=True):
                 success = mark_order_dispatched(target.get("order_id"))
                 if success:
                     st.success(f"Order #{order_id_safe} successfully marked as Dispatched in Google Sheets!")
                 st.session_state["dispatch_target"] = None
                 st.rerun()
         with c2:
-            if st.button("Cancel", use_container_width=True):
+            if st.button("❌ Cancel", use_container_width=True):
                 st.session_state["dispatch_target"] = None
                 st.rerun()
         st.divider()
@@ -1258,7 +1256,7 @@ def admin_view():
     st.subheader(f"Pending Orders ({len(pending_orders)})")
 
     if not pending_orders:
-        st.info("No pending orders to dispatch at this time. All orders are fulfilled!")
+        st.info("✨ No pending orders to dispatch at this time. All orders are fulfilled!")
         return
 
     # Table Header
