@@ -21,6 +21,43 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# 100% Safe Static Layout Reset: Eliminates 4-sided blank borders & fills full screen
+st.markdown("""
+    <style>
+        header[data-testid="stHeader"], footer, #MainMenu, [data-testid="stToolbar"], [data-testid="stDecoration"] {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+        }
+        html, body, .stApp, [data-testid="stAppViewContainer"], .main, .block-container {
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: 100vw !important;
+            width: 100vw !important;
+            background-color: #070709 !important;
+            overflow: hidden !important;
+        }
+        div[data-testid="stCustomComponentV1"] {
+            width: 100vw !important;
+            height: 100vh !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        div[data-testid="stCustomComponentV1"] > iframe {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            border: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            display: block !important;
+            z-index: 1 !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 # Session Security State Initialization
 if "orders_db" not in st.session_state:
     st.session_state["orders_db"] = []
@@ -37,10 +74,6 @@ if "last_admin_fetch" not in st.session_state:
 
 # ================= SECURE BASE64 IMAGE LOADER =================
 def get_image_src(filename, fallback_url):
-    """
-    Safely reads local product images, sanitizes path to prevent traversal,
-    and encodes them into Base64 for zero-CORS iframe rendering.
-    """
     safe_name = os.path.basename(filename)
     base_name = os.path.splitext(safe_name)[0]
     for ext in ["jpg", "jpeg", "png", "webp"]:
@@ -64,7 +97,6 @@ IMG_PRODUCT_4 = get_image_src("Product4.jpg", "https://images.unsplash.com/photo
 # ================= SECURE BACKEND GOOGLE SHEET API =================
 @st.cache_data(ttl=25, show_spinner=False)
 def fetch_pending_orders_cached(url):
-    """Protected fetcher to respect Google Apps Script rate limits."""
     if url and url.startswith("http"):
         try:
             res = requests.get(url, timeout=10)
@@ -84,7 +116,6 @@ def fetch_pending_orders():
     return [o for o in st.session_state["orders_db"] if str(o.get("status", "")).lower() == "pending"]
 
 def mark_order_dispatched(order_id):
-    """Updates order status to Dispatched with strict alphanumeric sanitization."""
     safe_order_id = "".join(c for c in str(order_id) if c.isalnum() or c == "-")
     success = False
     if GSHEET_URL and GSHEET_URL.startswith("http"):
@@ -116,7 +147,7 @@ def storefront_view():
         
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800&family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
         <script src="https://unpkg.com/@phosphor-icons/web"></script>
         <script src="https://cdn.tailwindcss.com"></script>
 
@@ -131,20 +162,35 @@ def storefront_view():
 
             * { box-sizing: border-box; margin: 0; padding: 0; }
 
-            body {
+            html, body {
+                width: 100%;
+                min-height: 100vh;
                 background-color: var(--bg-deep);
                 color: #f3f4f6;
                 font-family: 'Plus Jakarta Sans', sans-serif;
                 overflow-x: hidden;
             }
 
-            .font-luxury { font-family: 'Cinzel', serif; }
+            /* Fullscreen Background Ambient Swirl Canvas */
+            #ambient-bg-canvas {
+                position: fixed;
+                inset: 0;
+                width: 100vw;
+                height: 100vh;
+                pointer-events: none;
+                z-index: 0;
+            }
 
-            /* ================= REGAL MONOGRAM INTRO OVERLAY ================= */
+            .font-luxury { font-family: 'Cinzel', serif; }
+            .font-adam { font-family: 'Montserrat', sans-serif; font-weight: 900; letter-spacing: 0.05em; }
+
+            /* ================= FULLSCREEN INTRO OVERLAY ================= */
             #intro-overlay {
                 position: fixed;
                 inset: 0;
-                background: radial-gradient(circle at center, #13141b 0%, #000000 100%);
+                width: 100vw;
+                height: 100vh;
+                background: radial-gradient(circle at center, #15161f 0%, #070709 100%);
                 z-index: 999999;
                 display: flex;
                 flex-direction: column;
@@ -154,27 +200,30 @@ def storefront_view():
                 will-change: opacity;
             }
 
-            .regal-r-path {
+            /* Bold Adam Geometric Outline */
+            .adam-r-path {
                 stroke: #ffffff;
-                stroke-width: 4;
-                stroke-linecap: round;
-                stroke-linejoin: round;
+                stroke-width: 5;
+                stroke-linecap: square;
+                stroke-linejoin: miter;
                 fill: transparent;
-                animation: etchRoyalStroke 2.2s cubic-bezier(0.42, 0, 0.2, 1) forwards;
-                filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 25px rgba(229, 184, 105, 0.6));
+                animation: etchAdamStroke 2.0s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+                filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 28px rgba(229, 184, 105, 0.6));
             }
 
-            @keyframes etchRoyalStroke {
-                0% { stroke-dashoffset: var(--r-length, 750); }
+            @keyframes etchAdamStroke {
+                0% { stroke-dashoffset: var(--adam-length, 650); }
                 100% { stroke-dashoffset: 0; }
             }
 
-            .regal-r-fill {
+            /* Bold Adam Liquid Gold Fill with Living Shimmer */
+            .adam-r-fill {
                 opacity: 0;
-                animation: fillRoyalGold 1.6s cubic-bezier(0.16, 1, 0.3, 1) forwards 2.0s;
+                animation: fillAdamGold 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards 1.8s,
+                           adamShimmer 3.2s infinite ease-in-out 3.2s;
             }
 
-            @keyframes fillRoyalGold {
+            @keyframes fillAdamGold {
                 0% {
                     opacity: 0;
                     transform: scale(0.97);
@@ -187,9 +236,16 @@ def storefront_view():
                 }
             }
 
+            @keyframes adamShimmer {
+                0%, 100% { filter: drop-shadow(0 0 25px rgba(229, 184, 105, 0.85)) drop-shadow(0 0 50px rgba(255, 217, 132, 0.5)); }
+                50% { filter: drop-shadow(0 0 45px rgba(255, 217, 132, 1)) drop-shadow(0 0 85px rgba(229, 184, 105, 0.9)); }
+            }
+
             .dust-canvas {
                 position: absolute;
                 inset: 0;
+                width: 100vw;
+                height: 100vh;
                 pointer-events: none;
             }
 
@@ -278,7 +334,7 @@ def storefront_view():
                 position: fixed;
                 width: 550px;
                 height: 550px;
-                background: radial-gradient(circle, rgba(229, 184, 105, 0.07) 0%, transparent 70%);
+                background: radial-gradient(circle, rgba(229, 184, 105, 0.08) 0%, transparent 70%);
                 border-radius: 50%;
                 filter: blur(100px);
                 pointer-events: none;
@@ -288,13 +344,16 @@ def storefront_view():
     </head>
     <body class="relative min-h-screen">
 
-        <!-- INTRO ANIMATION SCREEN -->
+        <!-- Fullscreen Fluid Background Canvas (Covers Entire Storefront) -->
+        <canvas id="ambient-bg-canvas"></canvas>
+
+        <!-- INTRO OVERLAY SCREEN -->
         <div id="intro-overlay">
             <button class="skip-intro-btn" onclick="dismissIntro()">Skip ✕</button>
             <canvas id="dust-canvas" class="dust-canvas"></canvas>
             
             <div class="relative flex flex-col items-center">
-                <svg width="240" height="260" viewBox="0 0 220 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg width="220" height="240" viewBox="0 0 200 220" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <defs>
                         <linearGradient id="goldDustLiquid" x1="0%" y1="0%" x2="100%" y2="100%">
                             <stop offset="0%" stop-color="#ffffff" />
@@ -302,23 +361,22 @@ def storefront_view():
                             <stop offset="60%" stop-color="#ffd984" />
                             <stop offset="100%" stop-color="#b88328" />
                         </linearGradient>
-                        <filter id="royalGlow" x="-20%" y="-20%" width="140%" height="140%">
+                        <filter id="adamGlow" x="-20%" y="-20%" width="140%" height="140%">
                             <feGaussianBlur stdDeviation="3.5" result="blur" />
                             <feComposite in="SourceGraphic" in2="blur" operator="over" />
                         </filter>
                     </defs>
 
-                    <!-- Elegant Bespoke Serif "R" Vector Path -->
-                    <path id="regal-r-path" class="regal-r-path" 
-                          d="M 52 205 L 52 42 C 52 38 56 34 68 34 C 118 34 158 46 158 88 C 158 122 128 135 78 135 L 52 135 M 108 135 C 122 152 144 186 166 205 C 176 205 184 198 188 190" />
+                    <!-- Exact Geometric "Bold Adam" Font Monogram Path -->
+                    <path id="adam-r-path" class="adam-r-path" 
+                          d="M 56 200 L 56 32 L 122 32 C 162 32 162 114 122 114 L 56 114 M 112 114 L 166 200" />
                     
-                    <!-- Molten Gold Cured Fill -->
-                    <path class="regal-r-fill" filter="url(#royalGlow)" fill="url(#goldDustLiquid)" 
-                          d="M 52 205 L 52 42 C 52 38 56 34 68 34 C 118 34 158 46 158 88 C 158 122 128 135 78 135 L 52 135 M 108 135 C 122 152 144 186 166 205 C 176 205 184 198 188 190" 
-                          stroke="url(#goldDustLiquid)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+                    <path class="adam-r-fill" filter="url(#adamGlow)" fill="url(#goldDustLiquid)" 
+                          d="M 56 200 L 56 32 L 122 32 C 162 32 162 114 122 114 L 56 114 M 112 114 L 166 200" 
+                          stroke="url(#goldDustLiquid)" stroke-width="12" stroke-linecap="square" stroke-linejoin="miter" />
                 </svg>
 
-                <span id="intro-caption" class="font-luxury text-xs tracking-[0.45em] uppercase text-amber-200 mt-6 opacity-0 transition-opacity duration-1000">
+                <span id="intro-caption" class="font-adam text-xs tracking-[0.4em] uppercase text-amber-200 mt-6 opacity-0 transition-opacity duration-700">
                     Resins By R • Bespoke
                 </span>
             </div>
@@ -327,13 +385,13 @@ def storefront_view():
         <div class="ambient-glow top-0 left-[-100px]"></div>
         <div class="ambient-glow bottom-0 right-[-100px]"></div>
 
-        <!-- MAIN STORE VIEW -->
-        <div id="page-main">
-            <header class="sticky top-0 z-40 backdrop-blur-xl bg-black/50 border-b border-white/10">
+        <!-- MAIN STORE VIEW (Full-Bleed, Covers 100% of Screen) -->
+        <div id="page-main" class="relative z-10 w-full min-h-screen">
+            <header class="sticky top-0 z-40 backdrop-blur-xl bg-black/60 border-b border-white/10 w-full">
                 <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                     <a href="javascript:showPage('main')" class="fade-in-up flex items-center space-x-3">
                         <div class="w-10 h-10 rounded-full border border-amber-300/40 flex items-center justify-center bg-gradient-to-tr from-amber-600/30 to-amber-200/10">
-                            <span class="font-luxury text-amber-200 text-xl font-bold">R</span>
+                            <span class="font-adam text-amber-200 text-lg">R</span>
                         </div>
                         <span class="font-luxury text-xl tracking-[0.22em] text-white">RESINS <span class="text-amber-300 font-light text-sm tracking-normal">BY R</span></span>
                     </a>
@@ -522,7 +580,7 @@ def storefront_view():
             </main>
 
             <!-- Footer -->
-            <footer class="border-t border-white/10 bg-black/60 py-12 px-6 mt-20 relative z-10">
+            <footer class="border-t border-white/10 bg-black/60 py-12 px-6 mt-20 relative z-10 w-full">
                 <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
                     <div>
                         <h3 class="font-luxury text-lg text-white">RESINS BY R</h3>
@@ -718,13 +776,14 @@ def storefront_view():
             let shieldUploadedBlobs = [];
             let quickOrderItem = null;
             let introDismissed = false;
+            let introOverlayHidden = false;
 
             // ================= PRECISE INTRO ANIMATION TIMELINE =================
             function setupExactIntroAnimation() {
-                const path = document.getElementById('regal-r-path');
+                const path = document.getElementById('adam-r-path');
                 if (path) {
                     const totalLength = path.getTotalLength();
-                    path.style.setProperty('--r-length', totalLength);
+                    path.style.setProperty('--adam-length', totalLength);
                     path.style.strokeDasharray = totalLength;
                     path.style.strokeDashoffset = totalLength;
                 }
@@ -734,13 +793,13 @@ def storefront_view():
                         const cap = document.getElementById('intro-caption');
                         if (cap) cap.style.opacity = '1';
                     }
-                }, 4200);
+                }, 3800);
 
                 setTimeout(() => {
                     if (!introDismissed) {
                         dismissIntro();
                     }
-                }, 5800);
+                }, 5200);
             }
 
             function dismissIntro() {
@@ -748,16 +807,17 @@ def storefront_view():
                 introDismissed = true;
                 const intro = document.getElementById('intro-overlay');
                 if (intro) {
-                    intro.style.transition = 'opacity 1.4s cubic-bezier(0.4, 0, 0.2, 1)';
+                    intro.style.transition = 'opacity 1.5s cubic-bezier(0.25, 1, 0.5, 1)';
                     intro.style.opacity = '0';
                     intro.addEventListener('transitionend', () => {
                         intro.style.display = 'none';
+                        introOverlayHidden = true; // Only stop particles when 100% invisible!
                         initScrollObserver();
                     }, { once: true });
                 }
             }
 
-            // Dust canvas
+            // Canvas 1: Intro Gold Dust Canvas
             const canvas = document.getElementById('dust-canvas');
             const ctx = canvas.getContext('2d');
             let particles = [];
@@ -778,7 +838,7 @@ def storefront_view():
             }
 
             function animateDust() {
-                if (introDismissed) return;
+                if (introOverlayHidden) return; // Keeps running through fade-out without freezing!
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 particles.forEach(p => {
                     ctx.beginPath();
@@ -796,8 +856,38 @@ def storefront_view():
                 requestAnimationFrame(animateDust);
             }
 
+            // Canvas 2: Ambient Background Liquid Aura Canvas (Entire Page)
+            const bgCanvas = document.getElementById('ambient-bg-canvas');
+            const bgCtx = bgCanvas.getContext('2d');
+            function resizeBgCanvas() { bgCanvas.width = window.innerWidth; bgCanvas.height = window.innerHeight; }
+            resizeBgCanvas();
+            window.addEventListener('resize', resizeBgCanvas);
+
+            let bgOrbs = [
+                { x: window.innerWidth * 0.2, y: window.innerHeight * 0.3, r: 240, color: 'rgba(229, 184, 105, 0.05)', vx: 0.2, vy: 0.15 },
+                { x: window.innerWidth * 0.8, y: window.innerHeight * 0.7, r: 280, color: 'rgba(180, 130, 60, 0.04)', vx: -0.15, vy: -0.2 }
+            ];
+
+            function animateBg() {
+                bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+                bgOrbs.forEach(orb => {
+                    const grad = bgCtx.createRadialGradient(orb.x, orb.y, 10, orb.x, orb.y, orb.r);
+                    grad.addColorStop(0, orb.color);
+                    grad.addColorStop(1, 'transparent');
+                    bgCtx.fillStyle = grad;
+                    bgCtx.beginPath();
+                    bgCtx.arc(orb.x, orb.y, orb.r, 0, Math.PI * 2);
+                    bgCtx.fill();
+                    orb.x += orb.vx; orb.y += orb.vy;
+                    if (orb.x < 0 || orb.x > bgCanvas.width) orb.vx *= -1;
+                    if (orb.y < 0 || orb.y > bgCanvas.height) orb.vy *= -1;
+                });
+                requestAnimationFrame(animateBg);
+            }
+
             setupExactIntroAnimation();
             animateDust();
+            animateBg();
 
             // ================= FILE INTEGRITY & ANTI-MALWARE VERIFICATION =================
             function verifyMagicBytes(file) {
@@ -1098,7 +1188,7 @@ def storefront_view():
                 const grandTotal = subtotal + DELIVERY_FEE;
                 const productsListString = activeItems.map(i => `${i.name} (x${i.qty})`).join(', ');
 
-                // Send to Google Sheet
+                // Send to Google Sheet with Formula Shields
                 if (GSHEET_URL && GSHEET_URL.startsWith('http')) {
                     try {
                         const gsheetPayload = JSON.stringify({
@@ -1121,11 +1211,11 @@ def storefront_view():
                     }
                 }
 
-                // Send to Discord Webhook
+                // Send to Discord Webhook with @everyone Protection
                 if (DISCORD_WEBHOOK_URL && DISCORD_WEBHOOK_URL.startsWith('http')) {
                     const formData = new FormData();
                     const embedPayload = {
-                        title: `New Order: ${orderId}`,
+                        title: `New Bespoke Order: ${orderId}`,
                         color: 15054953,
                         fields: [
                             { name: "Order ID", value: orderId, inline: true },
@@ -1297,7 +1387,7 @@ def admin_view():
 
     st.divider()
 
-    # Render Order Rows with 100% Native Safe Streamlit Syntax (Zero unsafe_allow_html)
+    # Render Order Rows
     for idx, order in enumerate(pending_orders):
         cols = st.columns([1, 2, 3, 3, 2, 2, 2, 2, 2])
         cols[0].write(html.escape(str(order.get("sr_no", idx + 1))))
