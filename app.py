@@ -3,7 +3,6 @@ import json
 import time
 import hmac
 import html
-import re
 import base64
 import requests
 import streamlit as st
@@ -48,7 +47,6 @@ def get_image_src(filename, fallback_url):
         candidate_path = os.path.join("images", f"{base_name}.{ext}")
         if os.path.exists(candidate_path) and os.path.isfile(candidate_path):
             try:
-                # 5MB local safety check
                 if os.path.getsize(candidate_path) <= 5 * 1024 * 1024:
                     with open(candidate_path, "rb") as img_file:
                         encoded = base64.b64encode(img_file.read()).decode()
@@ -108,7 +106,7 @@ def mark_order_dispatched(order_id):
 
 # ================= STOREFRONT CLIENT VIEW =================
 def storefront_view():
-    HTML_TEMPLATE = f"""
+    HTML_TEMPLATE = """
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -123,27 +121,27 @@ def storefront_view():
         <script src="https://cdn.tailwindcss.com"></script>
 
         <style>
-            :root {{
+            :root {
                 --bg-deep: #070709;
                 --resin-gold: #e5b869;
                 --resin-gold-bright: #ffd984;
                 --resin-gold-glow: rgba(229, 184, 105, 0.45);
                 --liquid-glass-border: rgba(255, 255, 255, 0.12);
-            }}
+            }
 
-            * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+            * { box-sizing: border-box; margin: 0; padding: 0; }
 
-            body {{
+            body {
                 background-color: var(--bg-deep);
                 color: #f3f4f6;
                 font-family: 'Plus Jakarta Sans', sans-serif;
                 overflow-x: hidden;
-            }}
+            }
 
-            .font-luxury {{ font-family: 'Cinzel', serif; }}
+            .font-luxury { font-family: 'Cinzel', serif; }
 
             /* ================= REGAL MONOGRAM INTRO OVERLAY ================= */
-            #intro-overlay {{
+            #intro-overlay {
                 position: fixed;
                 inset: 0;
                 background: radial-gradient(circle at center, #13141b 0%, #000000 100%);
@@ -154,9 +152,9 @@ def storefront_view():
                 justify-content: center;
                 pointer-events: all;
                 will-change: opacity;
-            }}
+            }
 
-            .regal-r-path {{
+            .regal-r-path {
                 stroke: #ffffff;
                 stroke-width: 4;
                 stroke-linecap: round;
@@ -164,38 +162,38 @@ def storefront_view():
                 fill: transparent;
                 animation: etchRoyalStroke 2.2s cubic-bezier(0.42, 0, 0.2, 1) forwards;
                 filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 25px rgba(229, 184, 105, 0.6));
-            }}
+            }
 
-            @keyframes etchRoyalStroke {{
-                0% {{ stroke-dashoffset: var(--r-length, 750); }}
-                100% {{ stroke-dashoffset: 0; }}
-            }}
+            @keyframes etchRoyalStroke {
+                0% { stroke-dashoffset: var(--r-length, 750); }
+                100% { stroke-dashoffset: 0; }
+            }
 
-            .regal-r-fill {{
+            .regal-r-fill {
                 opacity: 0;
                 animation: fillRoyalGold 1.6s cubic-bezier(0.16, 1, 0.3, 1) forwards 2.0s;
-            }}
+            }
 
-            @keyframes fillRoyalGold {{
-                0% {{
+            @keyframes fillRoyalGold {
+                0% {
                     opacity: 0;
                     transform: scale(0.97);
                     filter: blur(8px);
-                }}
-                100% {{
+                }
+                100% {
                     opacity: 1;
                     transform: scale(1);
                     filter: blur(0px) drop-shadow(0 0 35px rgba(229, 184, 105, 0.95)) drop-shadow(0 0 70px rgba(255, 217, 132, 0.7));
-                }}
-            }}
+                }
+            }
 
-            .dust-canvas {{
+            .dust-canvas {
                 position: absolute;
                 inset: 0;
                 pointer-events: none;
-            }}
+            }
 
-            .skip-intro-btn {{
+            .skip-intro-btn {
                 position: absolute;
                 top: 24px;
                 right: 28px;
@@ -210,73 +208,73 @@ def storefront_view():
                 cursor: pointer;
                 transition: all 0.3s ease;
                 z-index: 1000000;
-            }}
-            .skip-intro-btn:hover {{
+            }
+            .skip-intro-btn:hover {
                 color: #e5b869;
                 border-color: #e5b869;
                 background: rgba(229, 184, 105, 0.1);
-            }}
+            }
 
-            .fade-in-up {{
+            .fade-in-up {
                 opacity: 0;
                 transform: translateY(28px);
                 transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1), transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
                 will-change: opacity, transform;
-            }}
+            }
 
-            .fade-in-up.appeared {{
+            .fade-in-up.appeared {
                 opacity: 1 !important;
                 transform: translateY(0) !important;
-            }}
+            }
 
-            .resin-card {{
+            .resin-card {
                 background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015));
                 backdrop-filter: blur(25px);
                 border: 1px solid var(--liquid-glass-border);
                 box-shadow: 0 20px 45px -15px rgba(0, 0, 0, 0.85);
                 transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease, box-shadow 0.4s ease;
-            }}
+            }
 
-            .resin-card:hover {{
+            .resin-card:hover {
                 transform: translateY(-8px);
                 border-color: rgba(229, 184, 105, 0.5);
                 box-shadow: 0 25px 50px -15px var(--resin-gold-glow);
-            }}
+            }
 
-            .btn-gold {{
+            .btn-gold {
                 background: linear-gradient(135deg, #e5b869, #bf8f3b);
                 color: #08090b;
                 font-weight: 700;
                 position: relative;
                 overflow: hidden;
                 transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-            }}
+            }
 
-            .btn-gold:hover {{
+            .btn-gold:hover {
                 box-shadow: 0 0 25px rgba(229, 184, 105, 0.6);
                 transform: translateY(-2px);
-            }}
+            }
 
-            .btn-gold:disabled {{
+            .btn-gold:disabled {
                 opacity: 0.5;
                 cursor: not-allowed;
                 transform: none !important;
                 box-shadow: none !important;
-            }}
+            }
 
-            .btn-glass {{
+            .btn-glass {
                 background: rgba(255, 255, 255, 0.04);
                 border: 1px solid rgba(255, 255, 255, 0.15);
                 transition: all 0.3s ease;
-            }}
+            }
 
-            .btn-glass:hover {{
+            .btn-glass:hover {
                 background: rgba(255, 255, 255, 0.1);
                 border-color: var(--resin-gold);
                 color: var(--resin-gold);
-            }}
+            }
 
-            .ambient-glow {{
+            .ambient-glow {
                 position: fixed;
                 width: 550px;
                 height: 550px;
@@ -285,7 +283,7 @@ def storefront_view():
                 filter: blur(100px);
                 pointer-events: none;
                 z-index: 0;
-            }}
+            }
         </style>
     </head>
     <body class="relative min-h-screen">
@@ -310,9 +308,11 @@ def storefront_view():
                         </filter>
                     </defs>
 
+                    <!-- Elegant Bespoke Serif "R" Vector Path -->
                     <path id="regal-r-path" class="regal-r-path" 
                           d="M 52 205 L 52 42 C 52 38 56 34 68 34 C 118 34 158 46 158 88 C 158 122 128 135 78 135 L 52 135 M 108 135 C 122 152 144 186 166 205 C 176 205 184 198 188 190" />
                     
+                    <!-- Molten Gold Cured Fill -->
                     <path class="regal-r-fill" filter="url(#royalGlow)" fill="url(#goldDustLiquid)" 
                           d="M 52 205 L 52 42 C 52 38 56 34 68 34 C 118 34 158 46 158 88 C 158 122 128 135 78 135 L 52 135 M 108 135 C 122 152 144 186 166 205 C 176 205 184 198 188 190" 
                           stroke="url(#goldDustLiquid)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
@@ -396,7 +396,7 @@ def storefront_view():
                     <div class="resin-card rounded-3xl p-6 flex flex-col justify-between">
                         <div>
                             <div class="fade-in-up relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
-                                <img src="{IMG_PRODUCT_1}" 
+                                <img src="__IMG_PRODUCT_1__" 
                                      alt="Resin Ring" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
                                 <span class="absolute top-4 left-4 px-3 py-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-xs uppercase tracking-wider text-amber-300">Jewelry</span>
                             </div>
@@ -430,7 +430,7 @@ def storefront_view():
                     <div class="resin-card rounded-3xl p-6 flex flex-col justify-between">
                         <div>
                             <div class="fade-in-up relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
-                                <img src="{IMG_PRODUCT_2}" 
+                                <img src="__IMG_PRODUCT_2__" 
                                      alt="Resin Shield" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
                                 <span class="absolute top-4 left-4 px-3 py-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-xs uppercase tracking-wider text-amber-300">Keepsake</span>
                             </div>
@@ -474,7 +474,7 @@ def storefront_view():
                     <div class="resin-card rounded-3xl p-6 flex flex-col justify-between">
                         <div>
                             <div class="fade-in-up relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
-                                <img src="{IMG_PRODUCT_3}" 
+                                <img src="__IMG_PRODUCT_3__" 
                                      alt="3D Chess Keychains" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
                                 <span class="absolute top-4 left-4 px-3 py-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-xs uppercase tracking-wider text-amber-300">Collectibles</span>
                             </div>
@@ -498,7 +498,7 @@ def storefront_view():
                     <div class="resin-card rounded-3xl p-6 flex flex-col justify-between">
                         <div>
                             <div class="fade-in-up relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
-                                <img src="{IMG_PRODUCT_4}" 
+                                <img src="__IMG_PRODUCT_4__" 
                                      alt="Tray & Coaster Set" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
                                 <span class="absolute top-4 left-4 px-3 py-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-xs uppercase tracking-wider text-amber-300">Home Decor</span>
                             </div>
@@ -705,11 +705,11 @@ def storefront_view():
         </div>
 
         <script>
-            const DISCORD_WEBHOOK_URL = "{DISCORD_WEBHOOK_URL}".trim();
-            const GSHEET_URL = "{GSHEET_URL}".trim();
+            const DISCORD_WEBHOOK_URL = "__DISCORD_WEBHOOK_URL__";
+            const GSHEET_URL = "__GSHEET_URL__";
             const SELLER_WHATSAPP = "923058866692";
             const DELIVERY_FEE = 500;
-            const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB hard limit
+            const MAX_FILE_SIZE = 5 * 1024 * 1024;
             const SUBMIT_COOLDOWN_SECONDS = 60;
 
             let cart = [];
@@ -720,53 +720,53 @@ def storefront_view():
             let introDismissed = false;
 
             // ================= PRECISE INTRO ANIMATION TIMELINE =================
-            function setupExactIntroAnimation() {{
+            function setupExactIntroAnimation() {
                 const path = document.getElementById('regal-r-path');
-                if (path) {{
+                if (path) {
                     const totalLength = path.getTotalLength();
                     path.style.setProperty('--r-length', totalLength);
                     path.style.strokeDasharray = totalLength;
                     path.style.strokeDashoffset = totalLength;
-                }}
+                }
 
-                setTimeout(() => {{
-                    if (!introDismissed) {{
+                setTimeout(() => {
+                    if (!introDismissed) {
                         const cap = document.getElementById('intro-caption');
                         if (cap) cap.style.opacity = '1';
-                    }}
-                }}, 4200);
+                    }
+                }, 4200);
 
-                setTimeout(() => {{
-                    if (!introDismissed) {{
+                setTimeout(() => {
+                    if (!introDismissed) {
                         dismissIntro();
-                    }}
-                }}, 5800);
-            }}
+                    }
+                }, 5800);
+            }
 
-            function dismissIntro() {{
+            function dismissIntro() {
                 if (introDismissed) return;
                 introDismissed = true;
                 const intro = document.getElementById('intro-overlay');
-                if (intro) {{
+                if (intro) {
                     intro.style.transition = 'opacity 1.4s cubic-bezier(0.4, 0, 0.2, 1)';
                     intro.style.opacity = '0';
-                    intro.addEventListener('transitionend', () => {{
+                    intro.addEventListener('transitionend', () => {
                         intro.style.display = 'none';
                         initScrollObserver();
-                    }}, {{ once: true }});
-                }}
-            }}
+                    }, { once: true });
+                }
+            }
 
             // Dust canvas
             const canvas = document.getElementById('dust-canvas');
             const ctx = canvas.getContext('2d');
             let particles = [];
-            function resizeCanvas() {{ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }}
+            function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
             resizeCanvas();
             window.addEventListener('resize', resizeCanvas);
 
-            for(let i=0; i<60; i++) {{
-                particles.push({{
+            for(let i=0; i<60; i++) {
+                particles.push({
                     x: Math.random() * canvas.width,
                     y: Math.random() * canvas.height,
                     radius: Math.random() * 2.2 + 0.6,
@@ -774,13 +774,13 @@ def storefront_view():
                     vy: -Math.random() * 0.8 - 0.2,
                     vx: (Math.random() - 0.5) * 0.5,
                     alpha: Math.random() * 0.8 + 0.2
-                }});
-            }}
+                });
+            }
 
-            function animateDust() {{
+            function animateDust() {
                 if (introDismissed) return;
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                particles.forEach(p => {{
+                particles.forEach(p => {
                     ctx.beginPath();
                     ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
                     ctx.fillStyle = p.color;
@@ -792,258 +792,255 @@ def storefront_view():
                     if(p.y < 0) p.y = canvas.height;
                     if(p.x < 0) p.x = canvas.width;
                     if(p.x > canvas.width) p.x = 0;
-                }});
+                });
                 requestAnimationFrame(animateDust);
-            }}
+            }
 
             setupExactIntroAnimation();
             animateDust();
 
             // ================= FILE INTEGRITY & ANTI-MALWARE VERIFICATION =================
-            function verifyMagicBytes(file) {{
-                return new Promise((resolve) => {{
+            function verifyMagicBytes(file) {
+                return new Promise((resolve) => {
                     const reader = new FileReader();
-                    reader.onloadend = function(e) {{
+                    reader.onloadend = function(e) {
                         const arr = (new Uint8Array(e.target.result)).subarray(0, 4);
                         let header = "";
-                        for (let i = 0; i < arr.length; i++) {{
+                        for (let i = 0; i < arr.length; i++) {
                             header += arr[i].toString(16).toUpperCase();
-                        }}
+                        }
                         const isJPEG = header.startsWith("FFD8FF");
                         const isPNG = header.startsWith("89504E47");
                         const isWEBP = header.startsWith("52494646");
                         resolve(isJPEG || isPNG || isWEBP);
-                    }};
+                    };
                     reader.readAsArrayBuffer(file.slice(0, 4));
-                }});
-            }}
+                });
+            }
 
-            function sanitizeAndCompressImage(file) {{
-                return new Promise((resolve, reject) => {{
+            function sanitizeAndCompressImage(file) {
+                return new Promise((resolve, reject) => {
                     const img = new Image();
                     const objectUrl = URL.createObjectURL(file);
-                    img.onload = () => {{
+                    img.onload = () => {
                         URL.revokeObjectURL(objectUrl);
-                        // Pixel-bomb guard: reject absurd dimension bombs
-                        if (img.naturalWidth > 5000 || img.naturalHeight > 5000) {{
+                        if (img.naturalWidth > 5000 || img.naturalHeight > 5000) {
                             reject(new Error("Image dimensions exceed 5000px safety limit"));
                             return;
-                        }}
+                        }
                         const cvs = document.createElement('canvas');
                         const maxDim = 1800;
                         let w = img.width;
                         let h = img.height;
-                        if (w > maxDim || h > maxDim) {{
-                            if (w > h) {{ h = Math.round((h * maxDim) / w); w = maxDim; }}
-                            else {{ w = Math.round((w * maxDim) / h); h = maxDim; }}
-                        }}
+                        if (w > maxDim || h > maxDim) {
+                            if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+                            else { w = Math.round((w * maxDim) / h); h = maxDim; }
+                        }
                         cvs.width = w;
                         cvs.height = h;
                         const c2d = cvs.getContext('2d');
                         c2d.drawImage(img, 0, 0, w, h);
-                        cvs.toBlob((blob) => {{
+                        cvs.toBlob((blob) => {
                             resolve(blob);
-                        }}, 'image/jpeg', 0.88);
-                    }};
-                    img.onerror = () => {{
+                        }, 'image/jpeg', 0.88);
+                    };
+                    img.onerror = () => {
                         URL.revokeObjectURL(objectUrl);
                         reject(new Error("Image stream decode failure"));
-                    }};
+                    };
                     img.src = objectUrl;
-                }});
-            }}
+                });
+            }
 
-            async function handleSecureShieldFiles(input) {{
+            async function handleSecureShieldFiles(input) {
                 const files = Array.from(input.files);
-                if (files.length > 3) {{
+                if (files.length > 3) {
                     alert("Max 3 pictures allowed.");
                     input.value = ""; shieldUploadedBlobs = [];
                     return;
-                }}
+                }
                 shieldUploadedBlobs = [];
-                for (const f of files) {{
-                    if (f.size > MAX_FILE_SIZE) {{
-                        alert(`File "${{f.name}}" exceeds 5MB limit.`);
+                for (const f of files) {
+                    if (f.size > MAX_FILE_SIZE) {
+                        alert(`File "${f.name}" exceeds 5MB limit.`);
                         input.value = ""; shieldUploadedBlobs = [];
                         return;
-                    }}
+                    }
                     const isValidFormat = await verifyMagicBytes(f);
-                    if (!isValidFormat) {{
-                        alert(`File "${{f.name}}" failed binary validation. Only verified JPEG, PNG, or WebP images are permitted.`);
+                    if (!isValidFormat) {
+                        alert(`File "${f.name}" failed binary validation. Only verified JPEG, PNG, or WebP images are permitted.`);
                         input.value = ""; shieldUploadedBlobs = [];
                         return;
-                    }}
-                    try {{
+                    }
+                    try {
                         const cleanBlob = await sanitizeAndCompressImage(f);
-                        shieldUploadedBlobs.push({{ name: f.name, blob: cleanBlob }});
-                    }} catch(e) {{
-                        alert(`Error validating ${{f.name}}: ${{e.message}}`);
+                        shieldUploadedBlobs.push({ name: f.name, blob: cleanBlob });
+                    } catch(e) {
+                        alert(`Error validating ${f.name}: ${e.message}`);
                         input.value = ""; shieldUploadedBlobs = [];
                         return;
-                    }}
-                }}
-                document.getElementById('shield-files-status').textContent = `${{shieldUploadedBlobs.length}} verified file(s) attached.`;
-            }}
+                    }
+                }
+                document.getElementById('shield-files-status').textContent = `${shieldUploadedBlobs.length} verified file(s) attached.`;
+            }
 
-            function initScrollObserver() {{
+            function initScrollObserver() {
                 const elements = document.querySelectorAll('.fade-in-up');
-                const observer = new IntersectionObserver((entries) => {{
-                    entries.forEach((entry, idx) => {{
-                        if (entry.isIntersecting) {{
-                            setTimeout(() => {{ entry.target.classList.add('appeared'); }}, idx * 55);
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach((entry, idx) => {
+                        if (entry.isIntersecting) {
+                            setTimeout(() => { entry.target.classList.add('appeared'); }, idx * 55);
                             observer.unobserve(entry.target);
-                        }}
-                    }});
-                }}, {{ threshold: 0.1 }});
+                        }
+                    });
+                }, { threshold: 0.1 });
                 elements.forEach(el => observer.observe(el));
-            }}
+            }
 
-            function showPage(page) {{
+            function showPage(page) {
                 document.getElementById('page-main').classList.add('hidden');
                 document.getElementById('page-policy').classList.add('hidden');
                 document.getElementById('page-404').classList.add('hidden');
-                if (page === 'main') {{
+                if (page === 'main') {
                     document.getElementById('page-main').classList.remove('hidden');
                     initScrollObserver();
-                }} else if (page === 'policy') {{
+                } else if (page === 'policy') {
                     document.getElementById('page-policy').classList.remove('hidden');
-                    window.scrollTo({{ top: 0, behavior: 'smooth' }});
-                }} else if (page === '404') {{
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else if (page === '404') {
                     document.getElementById('page-404').classList.remove('hidden');
-                }}
-            }}
+                }
+            }
 
-            function selectRingSize(btn, size) {{
-                document.querySelectorAll('#ring-sizes .size-btn').forEach(b => {{
+            function selectRingSize(btn, size) {
+                document.querySelectorAll('#ring-sizes .size-btn').forEach(b => {
                     b.className = 'size-btn px-3.5 py-1.5 rounded-lg border border-white/10 text-xs text-gray-300 hover:border-amber-300 transition';
-                }});
+                });
                 btn.className = 'size-btn px-3.5 py-1.5 rounded-lg border border-amber-300 text-xs text-amber-300 bg-amber-300/10 transition';
                 selectedRingSize = size;
-            }}
+            }
 
-            function adjustPhotos(delta) {{
+            function adjustPhotos(delta) {
                 shieldPhotosCount = Math.max(0, Math.min(3, shieldPhotosCount + delta));
                 document.getElementById('shield-photo-count').textContent = shieldPhotosCount;
                 const total = 2000 + (shieldPhotosCount * 100);
-                document.getElementById('shield-price-display').textContent = `PKR ${{total.toLocaleString()}}/-`;
-                document.getElementById('shield-photo-status').textContent = `${{shieldPhotosCount}} picture(s) (+PKR ${{shieldPhotosCount * 100}}/-)`;
+                document.getElementById('shield-price-display').textContent = `PKR ${total.toLocaleString()}/-`;
+                document.getElementById('shield-photo-status').textContent = `${shieldPhotosCount} picture(s) (+PKR ${shieldPhotosCount * 100}/-)`;
                 const uploader = document.getElementById('shield-uploader-box');
-                if (shieldPhotosCount > 0) {{ uploader.classList.remove('hidden'); }}
-                else {{ uploader.classList.add('hidden'); shieldUploadedBlobs = []; }}
-            }}
+                if (shieldPhotosCount > 0) { uploader.classList.remove('hidden'); }
+                else { uploader.classList.add('hidden'); shieldUploadedBlobs = []; }
+            }
 
-            function generateUniqueOrderId() {{
-                return `RBR-${{Math.floor(10000 + Math.random() * 90000)}}`;
-            }}
+            function generateUniqueOrderId() {
+                return `RBR-${Math.floor(10000 + Math.random() * 90000)}`;
+            }
 
-            // Neutralize Google Sheets Formula Injection (=, +, -, @)
-            function sanitizeForSheet(str) {{
+            function sanitizeForSheet(str) {
                 const s = String(str || '').trim();
-                if (s.startsWith('=') || s.startsWith('+') || s.startsWith('-') || s.startsWith('@')) {{
+                if (s.startsWith('=') || s.startsWith('+') || s.startsWith('-') || s.startsWith('@')) {
                     return "'" + s;
-                }}
+                }
                 return s;
-            }}
+            }
 
-            function getProductSpecs(id) {{
-                if (id === 'resin-ring') return {{ id, name: `Resin Ring (${{selectedRingSize}})`, spec: `Size: ${{selectedRingSize}}`, price: 800, qty: 1 }};
-                if (id === 'resin-shield') {{
+            function getProductSpecs(id) {
+                if (id === 'resin-ring') return { id, name: `Resin Ring (${selectedRingSize})`, spec: `Size: ${selectedRingSize}`, price: 800, qty: 1 };
+                if (id === 'resin-shield') {
                     const total = 2000 + (shieldPhotosCount * 100);
-                    return {{ id, name: 'Resins Shield (6-Inch)', spec: shieldPhotosCount > 0 ? `${{shieldPhotosCount}} custom picture(s)` : 'No pictures', price: total, qty: 1 }};
-                }}
-                if (id === 'chess-keychain') return {{ id, name: 'Resin 3D Chess Keychain', spec: 'Sculpted Piece', price: 500, qty: 1 }};
-                if (id === 'tray-coaster-set') return {{ id, name: 'Resin Tray & Coaster Set', spec: '1 Tray + 4 Coasters', price: 4000, qty: 1 }};
-            }}
+                    return { id, name: 'Resins Shield (6-Inch)', spec: shieldPhotosCount > 0 ? `${shieldPhotosCount} custom picture(s)` : 'No pictures', price: total, qty: 1 };
+                }
+                if (id === 'chess-keychain') return { id, name: 'Resin 3D Chess Keychain', spec: 'Sculpted Piece', price: 500, qty: 1 };
+                if (id === 'tray-coaster-set') return { id, name: 'Resin Tray & Coaster Set', spec: '1 Tray + 4 Coasters', price: 4000, qty: 1 };
+            }
 
-            function handleAddToCart(id) {{
+            function handleAddToCart(id) {
                 const item = getProductSpecs(id);
                 const exists = cart.find(i => i.name === item.name && i.spec === item.spec);
                 if (exists) exists.qty += 1; else cart.push(item);
                 renderCart();
-                showToast(`"${{item.name}}" added to cart`);
-            }}
+                showToast(`"${item.name}" added to cart`);
+            }
 
-            function handleQuickOrder(id) {{
+            function handleQuickOrder(id) {
                 quickOrderItem = getProductSpecs(id);
                 openCheckoutModal([quickOrderItem]);
-            }}
+            }
 
-            function renderCart() {{
+            function renderCart() {
                 const list = document.getElementById('cart-items-container');
                 document.getElementById('nav-cart-count').textContent = cart.reduce((a, c) => a + c.qty, 0);
-                if (cart.length === 0) {{
+                if (cart.length === 0) {
                     list.innerHTML = `<div class="h-64 flex flex-col items-center justify-center text-gray-500 text-sm">Your bag is empty.</div>`;
                     document.getElementById('cart-subtotal').textContent = 'PKR 0/-';
-                    document.getElementById('cart-grandtotal').textContent = `PKR ${{DELIVERY_FEE}}/-`;
+                    document.getElementById('cart-grandtotal').textContent = `PKR ${DELIVERY_FEE}/-`;
                     return;
-                }}
+                }
                 let sub = 0; let html = '';
-                cart.forEach((item, idx) => {{
+                cart.forEach((item, idx) => {
                     const cost = item.price * item.qty; sub += cost;
                     html += `
                         <div class="p-4 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between">
                             <div>
-                                <h4 class="text-sm font-semibold text-white">${{item.name}}</h4>
-                                <p class="text-xs text-amber-300">${{item.spec}}</p>
-                                <span class="text-xs font-mono text-gray-400 mt-1 block">Qty: ${{item.qty}} × PKR ${{item.price}}/-</span>
+                                <h4 class="text-sm font-semibold text-white">${item.name}</h4>
+                                <p class="text-xs text-amber-300">${item.spec}</p>
+                                <span class="text-xs font-mono text-gray-400 mt-1 block">Qty: ${item.qty} × PKR ${item.price}/-</span>
                             </div>
                             <div class="flex items-center gap-3">
-                                <span class="font-mono text-sm font-bold text-white">PKR ${{cost}}/-</span>
-                                <button onclick="removeCartItem(${{idx}})" class="text-gray-500 hover:text-red-400 text-base">&times;</button>
+                                <span class="font-mono text-sm font-bold text-white">PKR ${cost}/-</span>
+                                <button onclick="removeCartItem(${idx})" class="text-gray-500 hover:text-red-400 text-base">&times;</button>
                             </div>
                         </div>`;
-                }});
+                });
                 list.innerHTML = html;
-                document.getElementById('cart-subtotal').textContent = `PKR ${{sub.toLocaleString()}}/-`;
-                document.getElementById('cart-grandtotal').textContent = `PKR ${{(sub + DELIVERY_FEE).toLocaleString()}}/-`;
-            }}
+                document.getElementById('cart-subtotal').textContent = `PKR ${sub.toLocaleString()}/-`;
+                document.getElementById('cart-grandtotal').textContent = `PKR ${(sub + DELIVERY_FEE).toLocaleString()}/-`;
+            }
 
-            function removeCartItem(idx) {{ cart.splice(idx, 1); renderCart(); }}
+            function removeCartItem(idx) { cart.splice(idx, 1); renderCart(); }
 
-            function toggleCartDrawer(open) {{
+            function toggleCartDrawer(open) {
                 const drawer = document.getElementById('cart-drawer');
                 const backdrop = document.getElementById('cart-drawer-backdrop');
-                if (open) {{ backdrop.classList.remove('hidden'); setTimeout(() => drawer.classList.remove('translate-x-full'), 10); }}
-                else {{ drawer.classList.add('translate-x-full'); setTimeout(() => backdrop.classList.add('hidden'), 300); }}
-            }}
+                if (open) { backdrop.classList.remove('hidden'); setTimeout(() => drawer.classList.remove('translate-x-full'), 10); }
+                else { drawer.classList.add('translate-x-full'); setTimeout(() => backdrop.classList.add('hidden'), 300); }
+            }
 
-            function proceedToCheckoutFromCart() {{
-                if (cart.length === 0) {{ showToast("Your cart is empty"); return; }}
+            function proceedToCheckoutFromCart() {
+                if (cart.length === 0) { showToast("Your cart is empty"); return; }
                 toggleCartDrawer(false); quickOrderItem = null; openCheckoutModal(cart);
-            }}
+            }
 
-            function openCheckoutModal(items) {{
+            function openCheckoutModal(items) {
                 const sub = items.reduce((a, c) => a + (c.price * c.qty), 0);
-                document.getElementById('modal-item-summary').textContent = items.map(i => `${{i.name}} (x${{i.qty}})`).join(', ');
-                document.getElementById('modal-subtotal').textContent = `PKR ${{sub.toLocaleString()}}/-`;
-                document.getElementById('modal-total').textContent = `PKR ${{(sub + DELIVERY_FEE).toLocaleString()}}/-`;
+                document.getElementById('modal-item-summary').textContent = items.map(i => `${i.name} (x${i.qty})`).join(', ');
+                document.getElementById('modal-subtotal').textContent = `PKR ${sub.toLocaleString()}/-`;
+                document.getElementById('modal-total').textContent = `PKR ${(sub + DELIVERY_FEE).toLocaleString()}/-`;
                 toggleCheckoutModal(true);
-            }}
+            }
 
-            function toggleCheckoutModal(open) {{
+            function toggleCheckoutModal(open) {
                 const m = document.getElementById('checkout-modal');
                 if (open) m.classList.remove('hidden'); else m.classList.add('hidden');
-            }}
+            }
 
-            function showToast(msg) {{
+            function showToast(msg) {
                 const t = document.getElementById('toast');
                 document.getElementById('toast-msg').textContent = msg;
                 t.classList.remove('opacity-0', 'pointer-events-none');
                 setTimeout(() => t.classList.add('opacity-0', 'pointer-events-none'), 3000);
-            }}
+            }
 
             // ================= ZERO-TRUST SUBMISSION WORKFLOW =================
-            async function submitClientOrder(e) {{
+            async function submitClientOrder(e) {
                 e.preventDefault();
 
-                // 1. Client-Side Rate Limiter
                 const lastOrderTime = localStorage.getItem('rbr_last_order_ts');
                 const now = Math.floor(Date.now() / 1000);
-                if (lastOrderTime && (now - parseInt(lastOrderTime)) < SUBMIT_COOLDOWN_SECONDS) {{
+                if (lastOrderTime && (now - parseInt(lastOrderTime)) < SUBMIT_COOLDOWN_SECONDS) {
                     const remaining = SUBMIT_COOLDOWN_SECONDS - (now - parseInt(lastOrderTime));
-                    alert(`Studio Queue Cooldown:\\nPlease wait ${{remaining}}s before submitting another order.`);
+                    alert(`Studio Queue Cooldown:\nPlease wait ${remaining}s before submitting another order.`);
                     return;
-                }}
+                }
 
                 const fullName = document.getElementById('cust-name').value.trim();
                 const email = document.getElementById('cust-email').value.trim();
@@ -1052,60 +1049,59 @@ def storefront_view():
                 const tid = document.getElementById('cust-tid').value.trim();
                 const notes = document.getElementById('cust-notes').value.trim() || 'No customization notes';
 
-                // Strict Regex Validations
-                const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{{2,}}$/;
-                if (!emailRegex.test(email)) {{
+                const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+                if (!emailRegex.test(email)) {
                     alert("Please enter a valid email address."); return;
-                }}
-                const phoneRegex = /^[0-9+\-\s()]{{10,20}}$/;
-                if (!phoneRegex.test(phone)) {{
+                }
+                const phoneRegex = /^[0-9+\-\s()]{10,20}$/;
+                if (!phoneRegex.test(phone)) {
                     alert("Please enter a valid phone number (digits and standard formatting only)."); return;
-                }}
-                const tidRegex = /^[a-zA-Z0-9\-_]{{4,40}}$/;
-                if (!tidRegex.test(tid)) {{
+                }
+                const tidRegex = /^[a-zA-Z0-9\-_]{4,40}$/;
+                if (!tidRegex.test(tid)) {
                     alert("Please enter a valid Payment TID (alphanumeric characters, dashes, or underscores only)."); return;
-                }}
+                }
 
                 const screenshotInput = document.getElementById('cust-payment-screenshot');
-                if (!screenshotInput.files || screenshotInput.files.length === 0) {{
+                if (!screenshotInput.files || screenshotInput.files.length === 0) {
                     alert("Please attach screenshot of payment made."); return;
-                }}
+                }
                 const rawScreenshot = screenshotInput.files[0];
-                if (rawScreenshot.size > MAX_FILE_SIZE) {{
+                if (rawScreenshot.size > MAX_FILE_SIZE) {
                     alert("Screenshot exceeds 5MB size limit."); return;
-                }}
+                }
 
                 const isValidScreenshot = await verifyMagicBytes(rawScreenshot);
-                if (!isValidScreenshot) {{
+                if (!isValidScreenshot) {
                     alert("Suspicious or invalid payment screenshot file detected. Upload rejected.");
                     screenshotInput.value = "";
                     return;
-                }}
+                }
 
                 const btn = document.getElementById('submit-btn');
                 btn.disabled = true;
                 btn.innerHTML = `<span class="animate-pulse">Verifying & Curating...</span>`;
 
                 let cleanScreenshotBlob;
-                try {{
+                try {
                     cleanScreenshotBlob = await sanitizeAndCompressImage(rawScreenshot);
-                }} catch(err) {{
-                    alert(`Payment screenshot validation failure: ${{err.message}}`);
+                } catch(err) {
+                    alert(`Payment screenshot validation failure: ${err.message}`);
                     btn.disabled = false;
                     btn.innerHTML = `<span>Submit & Generate Order ID</span>`;
                     return;
-                }}
+                }
 
                 const orderId = generateUniqueOrderId();
                 const activeItems = quickOrderItem ? [quickOrderItem] : cart;
                 const subtotal = activeItems.reduce((a, c) => a + (c.price * c.qty), 0);
                 const grandTotal = subtotal + DELIVERY_FEE;
-                const productsListString = activeItems.map(i => `${{i.name}} (x${{i.qty}})`).join(', ');
+                const productsListString = activeItems.map(i => `${i.name} (x${i.qty})`).join(', ');
 
-                // 2. Dispatch to Google Sheet with Formula Injection Shields
-                if (GSHEET_URL && GSHEET_URL.startsWith('http')) {{
-                    try {{
-                        const gsheetPayload = JSON.stringify({{
+                // Send to Google Sheet
+                if (GSHEET_URL && GSHEET_URL.startsWith('http')) {
+                    try {
+                        const gsheetPayload = JSON.stringify({
                             action: "add_order",
                             name: sanitizeForSheet(fullName),
                             address: sanitizeForSheet(address),
@@ -1113,65 +1109,64 @@ def storefront_view():
                             customization: sanitizeForSheet(notes),
                             email: sanitizeForSheet(email),
                             order_id: sanitizeForSheet(orderId)
-                        }});
+                        });
 
-                        await fetch(GSHEET_URL, {{
+                        await fetch(GSHEET_URL, {
                             method: 'POST',
-                            headers: {{ 'Content-Type': 'text/plain;charset=utf-8' }},
+                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                             body: gsheetPayload
-                        }});
-                    }} catch (err) {{
+                        });
+                    } catch (err) {
                         console.warn("Direct Sheet push note:", err);
-                    }}
-                }}
+                    }
+                }
 
-                // 3. Dispatch to Discord Webhook with @everyone Exploit Shield
-                if (DISCORD_WEBHOOK_URL && DISCORD_WEBHOOK_URL.startsWith('http')) {{
+                // Send to Discord Webhook
+                if (DISCORD_WEBHOOK_URL && DISCORD_WEBHOOK_URL.startsWith('http')) {
                     const formData = new FormData();
-                    const embedPayload = {{
-                        title: `New Order: ${{orderId}}`,
+                    const embedPayload = {
+                        title: `New Order: ${orderId}`,
                         color: 15054953,
                         fields: [
-                            {{ name: "Order ID", value: orderId, inline: true }},
-                            {{ name: "Client Name", value: fullName, inline: true }},
-                            {{ name: "Email", value: email, inline: true }},
-                            {{ name: "Phone", value: phone, inline: true }},
-                            {{ name: "Delivery Address", value: address, inline: false }},
-                            {{ name: "Payment TID", value: tid, inline: true }},
-                            {{ name: "Payment Account", value: "0305-8866692 (Ramsha Fatima)", inline: true }},
-                            {{ name: "Products Ordered", value: productsListString, inline: false }},
-                            {{ name: "Total Amount", value: `PKR ${{grandTotal}}/-`, inline: true }},
-                            {{ name: "Custom Notes", value: notes, inline: false }}
+                            { name: "Order ID", value: orderId, inline: true },
+                            { name: "Client Name", value: fullName, inline: true },
+                            { name: "Email", value: email, inline: true },
+                            { name: "Phone", value: phone, inline: true },
+                            { name: "Delivery Address", value: address, inline: false },
+                            { name: "Payment TID", value: tid, inline: true },
+                            { name: "Payment Account", value: "0305-8866692 (Ramsha Fatima)", inline: true },
+                            { name: "Products Ordered", value: productsListString, inline: false },
+                            { name: "Total Amount", value: `PKR ${grandTotal}/-`, inline: true },
+                            { name: "Custom Notes", value: notes, inline: false }
                         ],
-                        footer: {{ text: "Resins by R • Zero-Trust Pipeline" }},
+                        footer: { text: "Resins by R • Zero-Trust Pipeline" },
                         timestamp: new Date().toISOString()
-                    }};
+                    };
 
-                    // allowed_mentions: { parse: [] } prevents @everyone / @here / mass pings
-                    formData.append("payload_json", JSON.stringify({{
-                        content: `**New Order Received from ${{fullName.replace(/@/g, '')}}** | Order ID: \`${{orderId}}\``,
+                    formData.append("payload_json", JSON.stringify({
+                        content: `**New Order Received from ${fullName.replace(/@/g, '')}** | Order ID: \`${orderId}\``,
                         embeds: [embedPayload],
-                        allowed_mentions: {{ parse: [] }}
-                    }}));
-                    formData.append("files[0]", cleanScreenshotBlob, `Sanitized_Payment_TID_${{tid}}.jpg`);
+                        allowed_mentions: { parse: [] }
+                    }));
+                    formData.append("files[0]", cleanScreenshotBlob, `Sanitized_Payment_TID_${tid}.jpg`);
                     
                     let fIdx = 1;
-                    shieldUploadedBlobs.forEach(item => {{
-                        formData.append(`files[${{fIdx}}]`, item.blob, `Sanitized_Shield_${{fIdx}}.jpg`);
+                    shieldUploadedBlobs.forEach(item => {
+                        formData.append(`files[${fIdx}]`, item.blob, `Sanitized_Shield_${fIdx}.jpg`);
                         fIdx++;
-                    }});
+                    });
 
-                    try {{
-                        await fetch(DISCORD_WEBHOOK_URL, {{ method: 'POST', body: formData }});
-                    }} catch (err) {{
+                    try {
+                        await fetch(DISCORD_WEBHOOK_URL, { method: 'POST', body: formData });
+                    } catch (err) {
                         console.warn("Discord Webhook dispatch note:", err);
-                    }}
-                }}
+                    }
+                }
 
                 localStorage.setItem('rbr_last_order_ts', Math.floor(Date.now() / 1000).toString());
 
-                const prewrittenMsg = `Assalamo-alaikum, I had ordered ${{productsListString}} under the order ID ${{orderId}}, can I get a confirmation on it?`;
-                const waUrl = `https://wa.me/${{SELLER_WHATSAPP}}?text=${{encodeURIComponent(prewrittenMsg)}}`;
+                const prewrittenMsg = `Assalamo-alaikum, I had ordered ${productsListString} under the order ID ${orderId}, can I get a confirmation on it?`;
+                const waUrl = `https://wa.me/${SELLER_WHATSAPP}?text=${encodeURIComponent(prewrittenMsg)}`;
                 document.getElementById('confirmed-order-id').textContent = orderId;
                 document.getElementById('whatsapp-order-link').href = waUrl;
 
@@ -1185,15 +1180,27 @@ def storefront_view():
 
                 btn.disabled = false;
                 btn.innerHTML = `<span>Submit & Generate Order ID</span>`;
-            }}
+            }
 
-            function closeSuccessModal() {{ document.getElementById('success-modal').classList.add('hidden'); }}
+            function closeSuccessModal() { document.getElementById('success-modal').classList.add('hidden'); }
             renderCart();
         </script>
     </body>
     </html>
     """
-    components.html(HTML_TEMPLATE, height=1000, scrolling=True)
+
+    # Safe variable injection without Python f-string bracket collisions
+    rendered_html = (
+        HTML_TEMPLATE
+        .replace("__IMG_PRODUCT_1__", IMG_PRODUCT_1)
+        .replace("__IMG_PRODUCT_2__", IMG_PRODUCT_2)
+        .replace("__IMG_PRODUCT_3__", IMG_PRODUCT_3)
+        .replace("__IMG_PRODUCT_4__", IMG_PRODUCT_4)
+        .replace("__DISCORD_WEBHOOK_URL__", DISCORD_WEBHOOK_URL)
+        .replace("__GSHEET_URL__", GSHEET_URL)
+    )
+
+    components.html(rendered_html, height=1000, scrolling=True)
 
 # ================= SECURED OWNER ADMIN DASHBOARD =================
 def admin_view():
@@ -1226,7 +1233,7 @@ def admin_view():
                     else:
                         st.session_state["admin_failed_attempts"] += 1
                         if st.session_state["admin_failed_attempts"] >= 5:
-                            st.session_state["admin_locked_until"] = now + 900  # 15-minute lockout
+                            st.session_state["admin_locked_until"] = now + 900
                             st.error("Too many failed attempts. Admin locked for 15 minutes.")
                         else:
                             st.error(f"Invalid credentials. Attempt {st.session_state['admin_failed_attempts']} of 5.")
@@ -1300,8 +1307,6 @@ def admin_view():
         cols[4].write(html.escape(str(order.get("customization", "None"))))
         cols[5].write(html.escape(str(order.get("email", "N/A"))))
         cols[6].markdown(f"`{html.escape(str(order.get('order_id', '')))}`")
-        
-        # Pure native colored markdown without unsafe_allow_html
         cols[7].markdown(":orange[**Pending**]")
 
         safe_btn_key = f"disp_{order.get('order_id', idx)}_{idx}"
