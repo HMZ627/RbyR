@@ -1,5 +1,6 @@
 import os
 import json
+import base64
 import requests
 import streamlit as st
 import streamlit.components.v1 as components
@@ -11,13 +12,13 @@ ADMIN_PASS = st.secrets.get("ADMIN_PASS", os.environ.get("ADMIN_PASS", "resin123
 DISCORD_WEBHOOK_URL = st.secrets.get("DISCORD_WEBHOOK_URL", os.environ.get("DISCORD_WEBHOOK_URL", "")).strip()
 
 st.set_page_config(
-    page_title="Resins by R | Liquid Luxury",
+    page_title="Resins by R | Bespoke Handcrafted Resin",
     page_icon="✨",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# Hide Streamlit UI Chrome
+# Streamlit UI Clean Display Override
 st.markdown("""
     <style>
         #MainMenu {visibility: hidden !important;}
@@ -39,7 +40,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Initialize Session State
+# Session State Initialization
 if "orders_db" not in st.session_state:
     st.session_state["orders_db"] = []
 if "admin_authenticated" not in st.session_state:
@@ -47,9 +48,35 @@ if "admin_authenticated" not in st.session_state:
 if "dispatch_target" not in st.session_state:
     st.session_state["dispatch_target"] = None
 
+# ================= LOCAL IMAGE LOADER (BASE64) =================
+def get_image_src(filename, fallback_url):
+    """
+    Checks images/ folder for the product image (supports jpg, jpeg, png, webp).
+    Encodes it to a Base64 Data URI so it renders safely inside the Streamlit iframe.
+    Falls back gracefully to high-res photography if the file is not found yet.
+    """
+    base_name = os.path.splitext(filename)[0]
+    for ext in ["jpg", "jpeg", "png", "webp"]:
+        candidate_path = os.path.join("images", f"{base_name}.{ext}")
+        if os.path.exists(candidate_path):
+            try:
+                with open(candidate_path, "rb") as img_file:
+                    encoded = base64.b64encode(img_file.read()).decode()
+                mime = "image/png" if ext == "png" else f"image/{ext}"
+                return f"data:{mime};base64,{encoded}"
+            except Exception:
+                pass
+    return fallback_url
+
+# Image Mappings for the 4 Products
+IMG_PRODUCT_1 = get_image_src("Product1.jpg", "https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=800&auto=format&fit=crop")
+IMG_PRODUCT_2 = get_image_src("Product2.jpg", "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?q=80&w=800&auto=format&fit=crop")
+IMG_PRODUCT_3 = get_image_src("Product3.jpg", "https://images.unsplash.com/photo-1529699211952-734e80c4d42b?q=80&w=800&auto=format&fit=crop")
+IMG_PRODUCT_4 = get_image_src("Product4.jpg", "https://images.unsplash.com/photo-1615529182904-14819c35db37?q=80&w=800&auto=format&fit=crop")
+
 # ================= BACKEND GOOGLE SHEET FUNCTIONS =================
 def fetch_pending_orders():
-    """Fetches orders from Google Sheet via GET."""
+    """Fetches orders from Google Sheet via GET endpoint."""
     if GSHEET_URL and GSHEET_URL.startswith("http"):
         try:
             res = requests.get(GSHEET_URL, timeout=12)
@@ -62,18 +89,16 @@ def fetch_pending_orders():
     return [o for o in st.session_state["orders_db"] if str(o.get("status", "")).lower() == "pending"]
 
 def mark_order_dispatched(order_id):
-    """Updates status to Dispatched in Google Sheet."""
+    """Updates order status to Dispatched in Google Sheet."""
     success = False
     if GSHEET_URL and GSHEET_URL.startswith("http"):
         try:
-            # Query parameter dispatch prevents 302 redirect payload drop
             res = requests.get(f"{GSHEET_URL}?action=dispatch_order&order_id={order_id}", timeout=12)
             if res.status_code == 200:
                 success = True
         except Exception as e:
-            st.error(f"Error dispatching order: {e}")
+            st.error(f"Error updating Google Sheet dispatch: {e}")
     
-    # Local session sync
     for item in st.session_state["orders_db"]:
         if str(item.get("order_id")) == str(order_id):
             item["status"] = "Dispatched"
@@ -82,7 +107,7 @@ def mark_order_dispatched(order_id):
 
     return success
 
-# ================= STOREFRONT VIEW =================
+# ================= STOREFRONT CLIENT VIEW =================
 def storefront_view():
     HTML_TEMPLATE = f"""
     <!DOCTYPE html>
@@ -222,6 +247,17 @@ def storefront_view():
                 border-color: var(--resin-gold);
                 color: var(--resin-gold);
             }}
+
+            .ambient-glow {{
+                position: fixed;
+                width: 550px;
+                height: 550px;
+                background: radial-gradient(circle, rgba(229, 184, 105, 0.07) 0%, transparent 70%);
+                border-radius: 50%;
+                filter: blur(100px);
+                pointer-events: none;
+                z-index: 0;
+            }}
         </style>
     </head>
     <body class="relative min-h-screen">
@@ -244,7 +280,9 @@ def storefront_view():
                         </filter>
                     </defs>
 
+                    <!-- The White Outline (Traced Top to Bottom) -->
                     <path class="etching-path" d="M 55 200 L 55 35 L 125 35 C 165 35 165 110 125 110 L 55 110 M 110 110 L 160 200" />
+                    <!-- The Liquid Gold Dust Fill -->
                     <path class="gold-fill-layer" filter="url(#liquidGlow)" fill="url(#goldDustLiquid)" 
                           d="M 55 200 L 55 35 L 125 35 C 165 35 165 110 125 110 L 55 110 M 110 110 L 160 200" 
                           stroke="url(#goldDustLiquid)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
@@ -254,6 +292,9 @@ def storefront_view():
                 </span>
             </div>
         </div>
+
+        <div class="ambient-glow top-0 left-[-100px]"></div>
+        <div class="ambient-glow bottom-0 right-[-100px]"></div>
 
         <!-- MAIN STORE VIEW -->
         <div id="page-main">
@@ -292,7 +333,7 @@ def storefront_view():
                 </h1>
 
                 <p class="fade-in-up max-w-2xl mx-auto text-gray-400 text-sm md:text-base leading-relaxed mb-8">
-                    Museum-grade epoxy, metallic mica, botanical inclusions, and real 24k gold leaf foil. Every piece is an unrepeatable heirloom.
+                    Museum-grade epoxy, metallic mica, botanical inclusions, and real 24k gold leaf foil. Every piece is an unrepeatable bespoke keepsake.
                 </p>
 
                 <div class="fade-in-up flex items-center justify-center gap-4">
@@ -319,11 +360,12 @@ def storefront_view():
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10">
+                    
                     <!-- 1. Resin Ring -->
                     <div class="resin-card rounded-3xl p-6 flex flex-col justify-between">
                         <div>
                             <div class="fade-in-up relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
-                                <img src="https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=800&auto=format&fit=crop" 
+                                <img src="{IMG_PRODUCT_1}" 
                                      alt="Resin Ring" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
                                 <span class="absolute top-4 left-4 px-3 py-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-xs uppercase tracking-wider text-amber-300">Jewelry</span>
                             </div>
@@ -357,7 +399,7 @@ def storefront_view():
                     <div class="resin-card rounded-3xl p-6 flex flex-col justify-between">
                         <div>
                             <div class="fade-in-up relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
-                                <img src="https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?q=80&w=800&auto=format&fit=crop" 
+                                <img src="{IMG_PRODUCT_2}" 
                                      alt="Resin Shield" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
                                 <span class="absolute top-4 left-4 px-3 py-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-xs uppercase tracking-wider text-amber-300">Keepsake</span>
                             </div>
@@ -401,7 +443,7 @@ def storefront_view():
                     <div class="resin-card rounded-3xl p-6 flex flex-col justify-between">
                         <div>
                             <div class="fade-in-up relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
-                                <img src="https://images.unsplash.com/photo-1529699211952-734e80c4d42b?q=80&w=800&auto=format&fit=crop" 
+                                <img src="{IMG_PRODUCT_3}" 
                                      alt="3D Chess Keychains" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
                                 <span class="absolute top-4 left-4 px-3 py-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-xs uppercase tracking-wider text-amber-300">Collectibles</span>
                             </div>
@@ -425,7 +467,7 @@ def storefront_view():
                     <div class="resin-card rounded-3xl p-6 flex flex-col justify-between">
                         <div>
                             <div class="fade-in-up relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
-                                <img src="https://images.unsplash.com/photo-1615529182904-14819c35db37?q=80&w=800&auto=format&fit=crop" 
+                                <img src="{IMG_PRODUCT_4}" 
                                      alt="Tray & Coaster Set" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
                                 <span class="absolute top-4 left-4 px-3 py-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-xs uppercase tracking-wider text-amber-300">Home Decor</span>
                             </div>
@@ -444,6 +486,7 @@ def storefront_view():
                             </button>
                         </div>
                     </div>
+
                 </div>
             </main>
 
@@ -877,7 +920,6 @@ def storefront_view():
                             order_id: orderId
                         }});
 
-                        // text/plain;charset=utf-8 avoids CORS OPTIONS preflight
                         await fetch(GSHEET_URL, {{
                             method: 'POST',
                             headers: {{ 'Content-Type': 'text/plain;charset=utf-8' }},
@@ -892,7 +934,7 @@ def storefront_view():
                 if (DISCORD_WEBHOOK_URL && DISCORD_WEBHOOK_URL.startsWith('http')) {{
                     const formData = new FormData();
                     const embedPayload = {{
-                        title: ` New Bespoke Order: ${{orderId}}`,
+                        title: `New Order: ${{orderId}}`,
                         color: 15054953,
                         fields: [
                             {{ name: "Order ID", value: orderId, inline: true }},
@@ -997,8 +1039,7 @@ def admin_view():
     with col_l:
         st.write(f"Logged in as: **{ADMIN_NAME}**")
     with col_m:
-        # Diagnostic test button to verify Google Sheet write access
-        if st.button("🔍 Test Google Sheet Connection"):
+        if st.button("Test Google Sheet Connection"):
             if not GSHEET_URL:
                 st.error("GSHEET_URL is empty! Please check your secrets.")
             else:
