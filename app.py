@@ -47,37 +47,33 @@ if "admin_authenticated" not in st.session_state:
 if "dispatch_target" not in st.session_state:
     st.session_state["dispatch_target"] = None
 
-# ================= HELPER FUNCTIONS =================
+# ================= BACKEND GOOGLE SHEET FUNCTIONS =================
 def fetch_pending_orders():
-    """Fetches orders from Google Sheet or fallback session state."""
+    """Fetches orders from Google Sheet via GET."""
     if GSHEET_URL and GSHEET_URL.startswith("http"):
         try:
-            res = requests.get(GSHEET_URL, timeout=8)
+            res = requests.get(GSHEET_URL, timeout=12)
             if res.status_code == 200:
                 data = res.json()
-                return [o for o in data if str(o.get("status", "")).strip().lower() == "pending"]
+                if isinstance(data, list):
+                    return [o for o in data if str(o.get("status", "")).strip().lower() == "pending"]
         except Exception as e:
-            st.error(f"Error fetching orders from Google Sheet: {e}")
-    # Local fallback
+            st.error(f"Error fetching from Google Sheet: {e}")
     return [o for o in st.session_state["orders_db"] if str(o.get("status", "")).lower() == "pending"]
 
 def mark_order_dispatched(order_id):
-    """Updates status to Dispatched in Google Sheet and local state."""
+    """Updates status to Dispatched in Google Sheet."""
     success = False
     if GSHEET_URL and GSHEET_URL.startswith("http"):
         try:
-            res = requests.post(
-                GSHEET_URL,
-                data=json.dumps({"action": "dispatch_order", "order_id": order_id}),
-                headers={"Content-Type": "application/json"},
-                timeout=8
-            )
+            # Query parameter dispatch prevents 302 redirect payload drop
+            res = requests.get(f"{GSHEET_URL}?action=dispatch_order&order_id={order_id}", timeout=12)
             if res.status_code == 200:
                 success = True
         except Exception as e:
-            st.error(f"Error updating Google Sheet: {e}")
+            st.error(f"Error dispatching order: {e}")
     
-    # Update local fallback
+    # Local session sync
     for item in st.session_state["orders_db"]:
         if str(item.get("order_id")) == str(order_id):
             item["status"] = "Dispatched"
@@ -645,7 +641,7 @@ def storefront_view():
             let shieldUploadedFiles = [];
             let quickOrderItem = null;
 
-            // Dust particle animation
+            // Dust particle canvas
             const canvas = document.getElementById('dust-canvas');
             const ctx = canvas.getContext('2d');
             let particles = [];
@@ -843,7 +839,7 @@ def storefront_view():
                 setTimeout(() => t.classList.add('opacity-0', 'pointer-events-none'), 3000);
             }}
 
-            // SUBMIT ORDER TO GOOGLE SHEET & DISCORD WEBHOOK
+            // ================= SUBMIT TO GOOGLE SHEET & DISCORD =================
             async function submitClientOrder(e) {{
                 e.preventDefault();
                 const screenshotInput = document.getElementById('cust-payment-screenshot');
@@ -853,7 +849,7 @@ def storefront_view():
 
                 const btn = document.getElementById('submit-btn');
                 btn.disabled = true;
-                btn.innerHTML = `<span class="animate-pulse">Registering in Database...</span>`;
+                btn.innerHTML = `<span class="animate-pulse">Updating Database & Queue...</span>`;
 
                 const orderId = generateUniqueOrderId();
                 const fullName = document.getElementById('cust-name').value.trim();
@@ -868,33 +864,35 @@ def storefront_view():
                 const grandTotal = subtotal + DELIVERY_FEE;
                 const productsListString = activeItems.map(i => `${{i.name}} (x${{i.qty}})`).join(', ');
 
-                // 1. Send To Google Sheet (Database)
+                // 1. SEND TO GOOGLE SHEET (Using text/plain to avoid CORS OPTIONS blocker)
                 if (GSHEET_URL && GSHEET_URL.startsWith('http')) {{
                     try {{
+                        const gsheetPayload = JSON.stringify({{
+                            action: "add_order",
+                            name: fullName,
+                            address: address,
+                            products: productsListString,
+                            customization: notes,
+                            email: email,
+                            order_id: orderId
+                        }});
+
+                        // text/plain;charset=utf-8 avoids CORS OPTIONS preflight
                         await fetch(GSHEET_URL, {{
                             method: 'POST',
-                            mode: 'no-cors',
-                            headers: {{ 'Content-Type': 'application/json' }},
-                            body: JSON.stringify({{
-                                action: "add_order",
-                                name: fullName,
-                                address: address,
-                                products: productsListString,
-                                customization: notes,
-                                email: email,
-                                order_id: orderId
-                            }})
+                            headers: {{ 'Content-Type': 'text/plain;charset=utf-8' }},
+                            body: gsheetPayload
                         }});
                     }} catch (err) {{
-                        console.warn("Google Sheet write failed:", err);
+                        console.warn("Direct Sheet push note:", err);
                     }}
                 }}
 
-                // 2. Send To Discord Webhook with Attachments
+                // 2. SEND TO DISCORD WEBHOOK
                 if (DISCORD_WEBHOOK_URL && DISCORD_WEBHOOK_URL.startsWith('http')) {{
                     const formData = new FormData();
                     const embedPayload = {{
-                        title: `New Bespoke Order: ${{orderId}}`,
+                        title: ` New Bespoke Order: ${{orderId}}`,
                         color: 15054953,
                         fields: [
                             {{ name: "Order ID", value: orderId, inline: true }},
@@ -930,13 +928,13 @@ def storefront_view():
                     }}
                 }}
 
-                // Pre-written WhatsApp Confirmation Link
+                // Pre-written WhatsApp confirmation
                 const prewrittenMsg = `Assalamo-alaikum, I had ordered ${{productsListString}} under the order ID ${{orderId}}, can I get a confirmation on it?`;
                 const waUrl = `https://wa.me/${{SELLER_WHATSAPP}}?text=${{encodeURIComponent(prewrittenMsg)}}`;
                 document.getElementById('confirmed-order-id').innerText = orderId;
                 document.getElementById('whatsapp-order-link').href = waUrl;
 
-                // Reset
+                // Reset UI
                 toggleCheckoutModal(false);
                 document.getElementById('success-modal').classList.remove('hidden');
                 cart = []; quickOrderItem = null; renderCart();
@@ -971,13 +969,6 @@ def admin_view():
                 padding: 24px;
                 margin-bottom: 24px;
             }
-            .order-row {
-                background: rgba(255, 255, 255, 0.03);
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: 12px;
-                padding: 16px;
-                margin-bottom: 12px;
-            }
         </style>
     """, unsafe_allow_html=True)
 
@@ -1001,10 +992,30 @@ def admin_view():
             st.markdown("</div>", unsafe_allow_html=True)
         return
 
-    # 2. Authenticated Dashboard
-    col_l, col_r = st.columns([6, 1])
+    # 2. Authenticated Dashboard Header
+    col_l, col_m, col_r = st.columns([4, 2, 1])
     with col_l:
         st.write(f"Logged in as: **{ADMIN_NAME}**")
+    with col_m:
+        # Diagnostic test button to verify Google Sheet write access
+        if st.button("🔍 Test Google Sheet Connection"):
+            if not GSHEET_URL:
+                st.error("GSHEET_URL is empty! Please check your secrets.")
+            else:
+                try:
+                    test_payload = json.dumps({
+                        "action": "add_order",
+                        "name": "Connection Test",
+                        "address": "Studio Testing",
+                        "products": "Sample Item",
+                        "customization": "Diagnostic Ping",
+                        "email": "test@resinsbyr.com",
+                        "order_id": "TEST-PING"
+                    })
+                    res = requests.post(GSHEET_URL, data=test_payload, headers={"Content-Type": "text/plain"}, timeout=10)
+                    st.success(f"Google Sheet Connected! Response: {res.text}")
+                except Exception as ex:
+                    st.error(f"Connection failed: {ex}")
     with col_r:
         if st.button("Logout"):
             st.session_state["admin_authenticated"] = False
@@ -1027,9 +1038,7 @@ def admin_view():
             if st.button("Yes, Confirm & Update Google Sheets", use_container_width=True):
                 success = mark_order_dispatched(target.get("order_id"))
                 if success:
-                    st.success(f"Order #{target.get('order_id')} successfully marked as Dispatched!")
-                else:
-                    st.info(f"Order #{target.get('order_id')} removed from queue.")
+                    st.success(f"Order #{target.get('order_id')} successfully marked as Dispatched in Google Sheets!")
                 st.session_state["dispatch_target"] = None
                 st.rerun()
         with c2:
@@ -1041,8 +1050,8 @@ def admin_view():
     st.subheader(f"Pending Orders ({len(pending_orders)})")
 
     if not pending_orders:
-        st.info("✨ No pending orders to dispatch at this time. All orders are fulfilled!")
-        if st.button("Refresh Orders from Google Sheet"):
+        st.info("No pending orders to dispatch at this time. All orders are fulfilled!")
+        if st.button("Refresh Orders"):
             st.rerun()
         return
 
@@ -1077,6 +1086,5 @@ def admin_view():
 main_page = st.Page(storefront_view, title="Resins by R", default=True)
 admin_page = st.Page(admin_view, title="Admin Portal", url_path="admin")
 
-# Route via st.navigation without exposing any sidebar navigation buttons
 pg = st.navigation([main_page, admin_page], position="hidden")
 pg.run()
