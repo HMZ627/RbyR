@@ -161,7 +161,6 @@ def storefront_view():
 
             * { box-sizing: border-box; margin: 0; padding: 0; }
 
-            /* Guaranteed Full Vertical Scrolling from Hero to Footer */
             html {
                 width: 100%;
                 min-height: 100%;
@@ -234,7 +233,7 @@ def storefront_view():
                 100% { opacity: 1; transform: scale(1); }
             }
 
-            /* "Resins By R" text fades in below */
+            /* "Resins By R" text caption fades in below */
             .intro-text-caption {
                 font-family: 'Cinzel', serif;
                 font-size: clamp(14px, 3.2vw, 19px);
@@ -276,15 +275,15 @@ def storefront_view():
                 background: rgba(229, 184, 105, 0.1);
             }
 
-            /* ================= FADE-IN-UPWARDS ANIMATIONS ================= */
-            .fade-in-up {
+            /* ================= ONE-TIME WHOLE-PAGE FADE-IN-UPWARDS ================= */
+            #page-main {
                 opacity: 0;
-                transform: translateY(26px);
-                transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+                transform: translateY(32px);
+                transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1), transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
                 will-change: opacity, transform;
             }
 
-            .fade-in-up.appeared {
+            #page-main.page-revealed {
                 opacity: 1 !important;
                 transform: translateY(0) !important;
             }
@@ -350,7 +349,7 @@ def storefront_view():
     </head>
     <body>
 
-        <!-- INTRO OVERLAY SCREEN (Anchored Dead-Center in Viewport) -->
+        <!-- INTRO OVERLAY SCREEN -->
         <div id="intro-overlay">
             <button class="skip-intro-btn" onclick="dismissIntro()">Skip ✕</button>
             
@@ -366,11 +365,11 @@ def storefront_view():
         <div class="ambient-glow top-0 left-[-100px]"></div>
         <div class="ambient-glow bottom-0 right-[-100px]"></div>
 
-        <!-- MAIN STORE VIEW (Full-Bleed, Uncut Scrolling to Footer) -->
+        <!-- WHOLE STOREFRONT PAGE (Fades In Upwards Once as a Complete Unit) -->
         <div id="page-main" class="relative z-10 w-full pb-48">
             <header class="sticky top-0 z-40 backdrop-blur-xl bg-black/75 border-b border-white/10 w-full">
                 <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-                    <a href="javascript:showPage('main')" class="fade-in-up flex items-center space-x-3">
+                    <a href="javascript:showPage('main')" class="flex items-center space-x-3">
                         <div class="w-10 h-10 rounded-full border border-amber-300/40 flex items-center justify-center bg-gradient-to-tr from-amber-600/30 to-amber-200/10">
                             <span class="font-adam text-amber-200 text-lg">R</span>
                         </div>
@@ -378,10 +377,10 @@ def storefront_view():
                     </a>
 
                     <div class="flex items-center space-x-4">
-                        <button onclick="showPage('policy')" class="fade-in-up text-xs uppercase tracking-widest text-gray-300 hover:text-amber-300 transition hidden sm:inline-block">
+                        <button onclick="showPage('policy')" class="text-xs uppercase tracking-widest text-gray-300 hover:text-amber-300 transition hidden sm:inline-block">
                             Policies
                         </button>
-                        <button onclick="toggleCartDrawer(true)" class="fade-in-up relative flex items-center space-x-2 px-5 py-2 rounded-full border border-white/15 bg-white/5 hover:border-amber-300/40 transition">
+                        <button onclick="toggleCartDrawer(true)" class="relative flex items-center space-x-2 px-5 py-2 rounded-full border border-white/15 bg-white/5 hover:border-amber-300/40 transition">
                             <i class="ph ph-handbag text-amber-300 text-lg"></i>
                             <span class="text-xs uppercase tracking-widest text-gray-200 font-medium">Cart</span>
                             <span id="nav-cart-count" class="ml-1 px-2 py-0.5 text-xs bg-amber-400 text-black font-bold rounded-full">0</span>
@@ -392,21 +391,21 @@ def storefront_view():
 
             <!-- Hero Section -->
             <section class="max-w-6xl mx-auto px-6 pt-20 pb-16 text-center relative z-10">
-                <div class="fade-in-up inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-amber-400/20 bg-amber-400/5 mb-6">
+                <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-amber-400/20 bg-amber-400/5 mb-6">
                     <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
                     <span class="text-xs uppercase tracking-widest text-amber-300 font-semibold">100% Handcrafted • Liquid Elegance</span>
                 </div>
 
-                <h1 class="fade-in-up font-luxury text-4xl sm:text-6xl md:text-7xl font-semibold tracking-tight text-white mb-6 leading-tight">
+                <h1 class="font-luxury text-4xl sm:text-6xl md:text-7xl font-semibold tracking-tight text-white mb-6 leading-tight">
                     Frozen In Time.<br>
                     <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-500">Liquid Luxury</span> Preserved.
                 </h1>
 
-                <p class="fade-in-up max-w-2xl mx-auto text-gray-400 text-sm md:text-base leading-relaxed mb-8">
+                <p class="max-w-2xl mx-auto text-gray-400 text-sm md:text-base leading-relaxed mb-8">
                     Museum-grade bio-resin, metallic mica, botanical inclusions, and real 24k gold leaf foil. Every piece is an unrepeatable bespoke keepsake.
                 </p>
 
-                <div class="fade-in-up flex items-center justify-center gap-4">
+                <div class="flex items-center justify-center gap-4">
                     <a href="#products-section" class="btn-gold px-8 py-3.5 rounded-full inline-flex items-center gap-3 text-xs tracking-widest uppercase">
                         <span>Explore Catalog</span>
                         <i class="ph ph-arrow-down text-sm"></i>
@@ -417,14 +416,14 @@ def storefront_view():
                 </div>
             </section>
 
-            <!-- Product Grid (Full Fade-In-Up Staggering) -->
+            <!-- Product Grid -->
             <main id="products-section" class="max-w-7xl mx-auto px-6 py-12 relative z-10">
                 <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 border-b border-white/10 pb-6">
                     <div>
-                        <h2 class="fade-in-up font-luxury text-3xl tracking-wide text-white">Signature Collection</h2>
-                        <p class="fade-in-up text-gray-400 text-sm mt-1">Select choices, personalize colors, and upload cherished memories.</p>
+                        <h2 class="font-luxury text-3xl tracking-wide text-white">Signature Collection</h2>
+                        <p class="text-gray-400 text-sm mt-1">Select choices, personalize colors, and upload cherished memories.</p>
                     </div>
-                    <div class="fade-in-up mt-4 md:mt-0 text-amber-300 font-mono text-xs tracking-widest uppercase">
+                    <div class="mt-4 md:mt-0 text-amber-300 font-mono text-xs tracking-widest uppercase">
                         Flat Delivery: PKR 500/- Nationwide
                     </div>
                 </div>
@@ -432,19 +431,19 @@ def storefront_view():
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10">
                     
                     <!-- 1. Resin Ring -->
-                    <div class="resin-card fade-in-up rounded-3xl p-6 flex flex-col justify-between">
+                    <div class="resin-card rounded-3xl p-6 flex flex-col justify-between">
                         <div>
-                            <div class="fade-in-up relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
+                            <div class="relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
                                 <img src="__IMG_PRODUCT_1__" 
                                      alt="Resin Ring" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
                                 <span class="absolute top-4 left-4 px-3 py-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-xs uppercase tracking-wider text-amber-300">Jewelry</span>
                             </div>
                             <div class="flex justify-between items-baseline mb-2">
-                                <h3 class="fade-in-up font-luxury text-2xl text-white">Resin Ring</h3>
-                                <span class="fade-in-up text-xl font-bold text-amber-300">PKR 800/-</span>
+                                <h3 class="font-luxury text-2xl text-white">Resin Ring</h3>
+                                <span class="text-xl font-bold text-amber-300">PKR 800/-</span>
                             </div>
-                            <p class="fade-in-up text-gray-400 text-sm mb-6">Polished glass-like epoxy ring infused with golden flakes and crystalline botanicals.</p>
-                            <div class="fade-in-up mb-6 bg-white/[0.02] p-4 rounded-xl border border-white/5">
+                            <p class="text-gray-400 text-sm mb-6">Polished glass-like epoxy ring infused with golden flakes and crystalline botanicals.</p>
+                            <div class="mb-6 bg-white/[0.02] p-4 rounded-xl border border-white/5">
                                 <label class="block text-xs uppercase tracking-wider text-gray-300 font-semibold mb-2">Select Size (US):</label>
                                 <div class="flex flex-wrap gap-2" id="ring-sizes">
                                     <button type="button" onclick="selectRingSize(this, 'US 5')" class="size-btn px-3.5 py-1.5 rounded-lg border border-amber-300 text-xs text-amber-300 bg-amber-300/10 transition">US 5</button>
@@ -456,29 +455,29 @@ def storefront_view():
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-3 pt-4 border-t border-white/5">
-                            <button onclick="handleAddToCart('resin-ring')" class="fade-in-up btn-glass py-3 rounded-xl text-xs uppercase tracking-widest font-semibold flex items-center justify-center gap-2">
+                            <button onclick="handleAddToCart('resin-ring')" class="btn-glass py-3 rounded-xl text-xs uppercase tracking-widest font-semibold flex items-center justify-center gap-2">
                                 <i class="ph ph-shopping-bag"></i> Add To Cart
                             </button>
-                            <button onclick="handleQuickOrder('resin-ring')" class="fade-in-up btn-gold py-3 rounded-xl text-xs uppercase tracking-widest font-bold">
+                            <button onclick="handleQuickOrder('resin-ring')" class="btn-gold py-3 rounded-xl text-xs uppercase tracking-widest font-bold">
                                 Order Now
                             </button>
                         </div>
                     </div>
 
                     <!-- 2. Resin Shield 6-Inch -->
-                    <div class="resin-card fade-in-up rounded-3xl p-6 flex flex-col justify-between">
+                    <div class="resin-card rounded-3xl p-6 flex flex-col justify-between">
                         <div>
-                            <div class="fade-in-up relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
+                            <div class="relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
                                 <img src="__IMG_PRODUCT_2__" 
                                      alt="Resin Shield" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
                                 <span class="absolute top-4 left-4 px-3 py-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-xs uppercase tracking-wider text-amber-300">Keepsake</span>
                             </div>
                             <div class="flex justify-between items-baseline mb-2">
-                                <h3 class="fade-in-up font-luxury text-2xl text-white">Resins Shield (6-Inch)</h3>
-                                <span id="shield-price-display" class="fade-in-up text-xl font-bold text-amber-300">PKR 2,000/-</span>
+                                <h3 class="font-luxury text-2xl text-white">Resins Shield (6-Inch)</h3>
+                                <span id="shield-price-display" class="text-xl font-bold text-amber-300">PKR 2,000/-</span>
                             </div>
-                            <p class="fade-in-up text-gray-400 text-sm mb-4">6-inch solid resin plaque. Base price PKR 2,000/- with an option to embed up to 3 pictures (+PKR 100/- each).</p>
-                            <div class="fade-in-up mb-6 bg-white/[0.02] p-4 rounded-xl border border-white/5">
+                            <p class="text-gray-400 text-sm mb-4">6-inch solid resin plaque. Base price PKR 2,000/- with an option to embed up to 3 pictures (+PKR 100/- each).</p>
+                            <div class="mb-6 bg-white/[0.02] p-4 rounded-xl border border-white/5">
                                 <div class="flex justify-between items-center mb-3">
                                     <label class="text-xs uppercase tracking-wider text-gray-300 font-semibold">Embedded Pictures (Max 3):</label>
                                     <span class="text-xs text-amber-300 font-mono">+PKR 100 / pic</span>
@@ -500,58 +499,58 @@ def storefront_view():
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-3 pt-4 border-t border-white/5">
-                            <button onclick="handleAddToCart('resin-shield')" class="fade-in-up btn-glass py-3 rounded-xl text-xs uppercase tracking-widest font-semibold flex items-center justify-center gap-2">
+                            <button onclick="handleAddToCart('resin-shield')" class="btn-glass py-3 rounded-xl text-xs uppercase tracking-widest font-semibold flex items-center justify-center gap-2">
                                 <i class="ph ph-shopping-bag"></i> Add To Cart
                             </button>
-                            <button onclick="handleQuickOrder('resin-shield')" class="fade-in-up btn-gold py-3 rounded-xl text-xs uppercase tracking-widest font-bold">
+                            <button onclick="handleQuickOrder('resin-shield')" class="btn-gold py-3 rounded-xl text-xs uppercase tracking-widest font-bold">
                                 Order Now
                             </button>
                         </div>
                     </div>
 
                     <!-- 3. Resin 3D Chess Keychains -->
-                    <div class="resin-card fade-in-up rounded-3xl p-6 flex flex-col justify-between">
+                    <div class="resin-card rounded-3xl p-6 flex flex-col justify-between">
                         <div>
-                            <div class="fade-in-up relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
+                            <div class="relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
                                 <img src="__IMG_PRODUCT_3__" 
                                      alt="3D Chess Keychains" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
                                 <span class="absolute top-4 left-4 px-3 py-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-xs uppercase tracking-wider text-amber-300">Collectibles</span>
                             </div>
                             <div class="flex justify-between items-baseline mb-2">
-                                <h3 class="fade-in-up font-luxury text-2xl text-white">Resin 3D Chess Keychains</h3>
-                                <span class="fade-in-up text-xl font-bold text-amber-300">PKR 500/-</span>
+                                <h3 class="font-luxury text-2xl text-white">Resin 3D Chess Keychains</h3>
+                                <span class="text-xl font-bold text-amber-300">PKR 500/-</span>
                             </div>
-                            <p class="fade-in-up text-gray-400 text-sm mb-6">Hand-poured 3D Chess pieces (Knight, Queen, King) with heavy shimmer mica and durable gold keyrings.</p>
+                            <p class="text-gray-400 text-sm mb-6">Hand-poured 3D Chess pieces (Knight, Queen, King) with heavy shimmer mica and durable gold keyrings.</p>
                         </div>
                         <div class="grid grid-cols-2 gap-3 pt-4 border-t border-white/5">
-                            <button onclick="handleAddToCart('chess-keychain')" class="fade-in-up btn-glass py-3 rounded-xl text-xs uppercase tracking-widest font-semibold flex items-center justify-center gap-2">
+                            <button onclick="handleAddToCart('chess-keychain')" class="btn-glass py-3 rounded-xl text-xs uppercase tracking-widest font-semibold flex items-center justify-center gap-2">
                                 <i class="ph ph-shopping-bag"></i> Add To Cart
                             </button>
-                            <button onclick="handleQuickOrder('chess-keychain')" class="fade-in-up btn-gold py-3 rounded-xl text-xs uppercase tracking-widest font-bold">
+                            <button onclick="handleQuickOrder('chess-keychain')" class="btn-gold py-3 rounded-xl text-xs uppercase tracking-widest font-bold">
                                 Order Now
                             </button>
                         </div>
                     </div>
 
                     <!-- 4. Resin Tray and Coaster Set -->
-                    <div class="resin-card fade-in-up rounded-3xl p-6 flex flex-col justify-between">
+                    <div class="resin-card rounded-3xl p-6 flex flex-col justify-between">
                         <div>
-                            <div class="fade-in-up relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
+                            <div class="relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
                                 <img src="__IMG_PRODUCT_4__" 
                                      alt="Tray & Coaster Set" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
                                 <span class="absolute top-4 left-4 px-3 py-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-xs uppercase tracking-wider text-amber-300">Home Decor</span>
                             </div>
                             <div class="flex justify-between items-baseline mb-2">
-                                <h3 class="fade-in-up font-luxury text-2xl text-white">Resin Tray & Coaster Set</h3>
-                                <span class="fade-in-up text-xl font-bold text-amber-300">PKR 4,000/-</span>
+                                <h3 class="font-luxury text-2xl text-white">Resin Tray & Coaster Set</h3>
+                                <span class="text-xl font-bold text-amber-300">PKR 4,000/-</span>
                             </div>
-                            <p class="fade-in-up text-gray-400 text-sm mb-6">Complete luxury set: 1 signature serving tray and 4 matching coasters hand-embellished with gilded raw edges.</p>
+                            <p class="text-gray-400 text-sm mb-6">Complete luxury set: 1 signature serving tray and 4 matching coasters hand-embellished with gilded raw edges.</p>
                         </div>
                         <div class="grid grid-cols-2 gap-3 pt-4 border-t border-white/5">
-                            <button onclick="handleAddToCart('tray-coaster-set')" class="fade-in-up btn-glass py-3 rounded-xl text-xs uppercase tracking-widest font-semibold flex items-center justify-center gap-2">
+                            <button onclick="handleAddToCart('tray-coaster-set')" class="btn-glass py-3 rounded-xl text-xs uppercase tracking-widest font-semibold flex items-center justify-center gap-2">
                                 <i class="ph ph-shopping-bag"></i> Add To Cart
                             </button>
-                            <button onclick="handleQuickOrder('tray-coaster-set')" class="fade-in-up btn-gold py-3 rounded-xl text-xs uppercase tracking-widest font-bold">
+                            <button onclick="handleQuickOrder('tray-coaster-set')" class="btn-gold py-3 rounded-xl text-xs uppercase tracking-widest font-bold">
                                 Order Now
                             </button>
                         </div>
@@ -560,10 +559,10 @@ def storefront_view():
                 </div>
             </main>
 
-            <!-- Footer (Full Width, Fully Scrollable) -->
+            <!-- Footer -->
             <footer class="border-t border-white/10 bg-black/80 py-16 px-6 mt-20 relative z-10 w-full">
                 <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
-                    <div class="fade-in-up">
+                    <div>
                         <h3 class="font-luxury text-lg text-white">RESINS BY R</h3>
                         <p class="text-xs text-gray-400 mt-1">Direct inquiries & instant support:</p>
                         <a href="https://wa.me/923058866692?text=Assalamo-alaikum%20Resins%20by%20R%2C%20I%20have%20an%20inquiry%20regarding%20bespoke%20orders." 
@@ -573,7 +572,7 @@ def storefront_view():
                             <span>0305-8866692 (Ramsha Fatima)</span>
                         </a>
                     </div>
-                    <div class="fade-in-up flex items-center gap-6 text-xs text-gray-400">
+                    <div class="flex items-center gap-6 text-xs text-gray-400">
                         <button onclick="showPage('policy')" class="hover:text-amber-300 transition">Studio Policies</button>
                         <button onclick="showPage('404')" class="hover:text-amber-300 transition">Error 404 Preview</button>
                     </div>
@@ -758,7 +757,7 @@ def storefront_view():
             let quickOrderItem = null;
             let introDismissed = false;
 
-            // ================= EXACT CENTERED ANIMATION TIMELINE =================
+            // ================= NEW ANIMATION SEQUENCE =================
             function startIntroSequence() {
                 setTimeout(() => {
                     if (!introDismissed) {
@@ -771,59 +770,20 @@ def storefront_view():
                 if (introDismissed) return;
                 introDismissed = true;
                 const intro = document.getElementById('intro-overlay');
+                const pageMain = document.getElementById('page-main');
                 if (intro) {
                     intro.style.transition = 'opacity 1.2s cubic-bezier(0.25, 1, 0.5, 1)';
                     intro.style.opacity = '0';
                     setTimeout(() => {
                         intro.style.display = 'none';
-                        triggerScrollAnimations();
-                    }, 1200);
+                        if (pageMain) {
+                            pageMain.classList.add('page-revealed');
+                        }
+                    }, 400); // Reveals the whole page in a single upward glide
                 }
             }
 
             startIntroSequence();
-
-            // ================= RELIABLE FULL-PAGE FADE-IN-UP ENGINE =================
-            function triggerScrollAnimations() {
-                const elements = document.querySelectorAll('.fade-in-up');
-                
-                function isElementInViewport(el) {
-                    const rect = el.getBoundingClientRect();
-                    return rect.top <= (window.innerHeight || document.documentElement.clientHeight) + 80;
-                }
-
-                function checkAndReveal() {
-                    elements.forEach((el, index) => {
-                        if (!el.classList.contains('appeared') && isElementInViewport(el)) {
-                            setTimeout(() => {
-                                el.classList.add('appeared');
-                            }, (index % 4) * 60);
-                        }
-                    });
-                }
-
-                if ('IntersectionObserver' in window) {
-                    const observer = new IntersectionObserver((entries) => {
-                        entries.forEach((entry) => {
-                            if (entry.isIntersecting) {
-                                entry.target.classList.add('appeared');
-                                observer.unobserve(entry.target);
-                            }
-                        });
-                    }, { root: null, rootMargin: '0px 0px 100px 0px', threshold: 0.05 });
-
-                    elements.forEach(el => observer.observe(el));
-                }
-
-                window.addEventListener('scroll', checkAndReveal, { passive: true });
-                checkAndReveal();
-
-                // Safety checks to ensure content is never left invisible
-                setTimeout(checkAndReveal, 600);
-                setTimeout(() => {
-                    elements.forEach(el => el.classList.add('appeared'));
-                }, 2800);
-            }
 
             // ================= FILE INTEGRITY & ANTI-MALWARE VERIFICATION =================
             function verifyMagicBytes(file) {
@@ -915,8 +875,9 @@ def storefront_view():
                 document.getElementById('page-policy').classList.add('hidden');
                 document.getElementById('page-404').classList.add('hidden');
                 if (page === 'main') {
-                    document.getElementById('page-main').classList.remove('hidden');
-                    triggerScrollAnimations();
+                    const pageMain = document.getElementById('page-main');
+                    pageMain.classList.remove('hidden');
+                    pageMain.classList.add('page-revealed');
                 } else if (page === 'policy') {
                     document.getElementById('page-policy').classList.remove('hidden');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1051,7 +1012,7 @@ def storefront_view():
                 const now = Math.floor(Date.now() / 1000);
                 if (lastOrderTime && (now - parseInt(lastOrderTime)) < SUBMIT_COOLDOWN_SECONDS) {
                     const remaining = SUBMIT_COOLDOWN_SECONDS - (now - parseInt(lastOrderTime));
-                    alert(`Studio Queue Cooldown:\nPlease wait ${remaining}s before submitting another order.`);
+                    alert(`⚠️ Studio Queue Cooldown:\nPlease wait ${remaining}s before submitting another bespoke order.`);
                     return;
                 }
 
@@ -1138,7 +1099,7 @@ def storefront_view():
                 if (DISCORD_WEBHOOK_URL && DISCORD_WEBHOOK_URL.startsWith('http')) {
                     const formData = new FormData();
                     const embedPayload = {
-                        title: `New Order: ${orderId}`,
+                        title: `✨ New Bespoke Order: ${orderId}`,
                         color: 15054953,
                         fields: [
                             { name: "Order ID", value: orderId, inline: true },
@@ -1157,7 +1118,7 @@ def storefront_view():
                     };
 
                     formData.append("payload_json", JSON.stringify({
-                        content: `**New Order Received from ${fullName.replace(/@/g, '')}** | Order ID: \`${orderId}\``,
+                        content: `🚨 **New Order Received from ${fullName.replace(/@/g, '')}** | Order ID: \`${orderId}\``,
                         embeds: [embedPayload],
                         allowed_mentions: { parse: [] }
                     }));
@@ -1225,7 +1186,7 @@ def admin_view():
     # 1. Brute-Force Lockout Guard
     if now < st.session_state["admin_locked_until"]:
         lock_remaining = int(st.session_state["admin_locked_until"] - now)
-        st.error(f"Security Alert: Maximum login attempts exceeded. Portal locked for {lock_remaining} seconds.")
+        st.error(f"🛑 Security Alert: Maximum login attempts exceeded. Portal locked for {lock_remaining} seconds.")
         return
 
     # 2. Timing-Attack Proof Authentication (Zero unsafe_allow_html)
@@ -1247,7 +1208,7 @@ def admin_view():
                         st.session_state["admin_failed_attempts"] += 1
                         if st.session_state["admin_failed_attempts"] >= 5:
                             st.session_state["admin_locked_until"] = now + 900
-                            st.error("Too many failed attempts. Admin locked for 15 minutes.")
+                            st.error("🛑 Too many failed attempts. Admin locked for 15 minutes.")
                         else:
                             st.error(f"Invalid credentials. Attempt {st.session_state['admin_failed_attempts']} of 5.")
         return
@@ -1257,7 +1218,7 @@ def admin_view():
     with col_l:
         st.write(f"Logged in as: **{html.escape(ADMIN_NAME)}**")
     with col_m:
-        if st.button("Sync with Google Sheet"):
+        if st.button("🔄 Sync with Google Sheet"):
             if now - st.session_state["last_admin_fetch"] < 5.0:
                 st.warning("Please wait 5 seconds before refreshing Google Sheets.")
             else:
@@ -1275,7 +1236,7 @@ def admin_view():
     if st.session_state["dispatch_target"]:
         target = st.session_state["dispatch_target"]
         order_id_safe = html.escape(str(target.get('order_id', '')))
-        st.warning(f"**Confirm Dispatch For Order #{order_id_safe}?**")
+        st.warning(f"⚠️ **Confirm Dispatch For Order #{order_id_safe}?**")
         st.markdown(f"""
             - **Client Name:** {html.escape(str(target.get('name', '')))}
             - **Products:** {html.escape(str(target.get('products', '')))}
@@ -1284,14 +1245,14 @@ def admin_view():
         """)
         c1, c2 = st.columns(2)
         with c1:
-            if st.button("Yes, Confirm & Update Google Sheets", use_container_width=True):
+            if st.button("✅ Yes, Confirm & Update Google Sheets", use_container_width=True):
                 success = mark_order_dispatched(target.get("order_id"))
                 if success:
                     st.success(f"Order #{order_id_safe} successfully marked as Dispatched in Google Sheets!")
                 st.session_state["dispatch_target"] = None
                 st.rerun()
         with c2:
-            if st.button("Cancel", use_container_width=True):
+            if st.button("❌ Cancel", use_container_width=True):
                 st.session_state["dispatch_target"] = None
                 st.rerun()
         st.divider()
@@ -1299,7 +1260,7 @@ def admin_view():
     st.subheader(f"Pending Orders ({len(pending_orders)})")
 
     if not pending_orders:
-        st.info("No pending orders to dispatch at this time. All orders are fulfilled!")
+        st.info("✨ No pending orders to dispatch at this time. All orders are fulfilled!")
         return
 
     # Table Header
