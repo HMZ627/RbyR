@@ -1,0 +1,17 @@
+[client]
+# Disables full Python stack traces and file path disclosures to visitors
+showErrorDetails = "none"
+
+# Locks the top toolbar and settings menu from public visitors
+toolbarMode = "minimal"
+
+[server]
+# Disables dev-mode auto-reloading to save RAM and CPU cycles
+runOnSave = false
+
+# Protects WebSocket endpoints against unauthorized cross-origin connections
+enableXsrfProtection = true
+
+[browser]
+# Suppresses auto-opening browser tabs and pingbacks
+gatherUsageStats = false
