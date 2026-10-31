@@ -1499,7 +1499,7 @@ def admin_view():
         st.markdown(f"""
             - **Client Name:** {sanitize_admin_text(target.get('name', ''))}
             - **Products:** {sanitize_admin_text(target.get('products', ''))}
-            - **Address:** {sanitize_admin_text(target.get('address', '')))}
+            - **Address:** {sanitize_admin_text(target.get('address', ''))}
             - **Email:** {sanitize_admin_text(target.get('email', ''))}
         """)
         c1, c2 = st.columns(2)
