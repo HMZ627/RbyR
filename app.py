@@ -155,6 +155,7 @@ def storefront_view():
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <!-- Strict Content Security Policy (Prevents Unauthorized Script Execution) -->
         <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: blob: https://fonts.googleapis.com https://fonts.gstatic.com https://cdn.tailwindcss.com https://unpkg.com https://images.unsplash.com https://wa.me; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://discord.com;">
         
         <title>Resins by R</title>
@@ -200,7 +201,13 @@ def storefront_view():
             .font-luxury { font-family: 'Cinzel', serif; }
             .font-adam { font-family: 'Montserrat', sans-serif; font-weight: 900; }
 
-            /* ================= HIGH-END STARTING ANIMATION ================= */
+            /* ================= FAILSAFE AUTO-DISMISSING INTRO OVERLAY ================= */
+            @keyframes autoDismissOverlay {
+                0%, 80% { opacity: 1; pointer-events: all; visibility: visible; }
+                95% { opacity: 0; pointer-events: none; visibility: visible; }
+                100% { opacity: 0; pointer-events: none; visibility: hidden; display: none; }
+            }
+
             #intro-overlay {
                 position: fixed;
                 top: 0;
@@ -215,6 +222,62 @@ def storefront_view():
                 justify-content: center;
                 pointer-events: all;
                 will-change: opacity;
+                animation: autoDismissOverlay 5.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+                transition: opacity 1.3s cubic-bezier(0.25, 1, 0.5, 1);
+            }
+
+            #intro-overlay.dismissed {
+                opacity: 0 !important;
+                pointer-events: none !important;
+            }
+
+            /* ================= RADIAL BACKLIGHT SHOCKWAVE ================= */
+            .logo-backlight-burst {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 180px;
+                height: 180px;
+                border-radius: 50%;
+                background: radial-gradient(circle, rgba(255, 255, 255, 1) 0%, rgba(255, 225, 130, 0.9) 20%, rgba(229, 184, 105, 0.6) 45%, rgba(184, 131, 40, 0) 70%);
+                filter: blur(30px);
+                pointer-events: none;
+                z-index: 1;
+                transform: translate(-50%, -50%) scale(0.2);
+                opacity: 0;
+                animation: backlightBurstOut 5.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+            }
+
+            @keyframes backlightBurstOut {
+                0% {
+                    transform: translate(-50%, -50%) scale(0.2);
+                    opacity: 0;
+                }
+                30% {
+                    transform: translate(-50%, -50%) scale(1);
+                    opacity: 0.85;
+                    filter: blur(35px);
+                }
+                55% {
+                    transform: translate(-50%, -50%) scale(1.4);
+                    opacity: 1;
+                    filter: blur(45px);
+                }
+                75% {
+                    transform: translate(-50%, -50%) scale(6);
+                    opacity: 0.85;
+                    filter: blur(70px);
+                }
+                95% {
+                    transform: translate(-50%, -50%) scale(22);
+                    opacity: 0.15;
+                    filter: blur(120px);
+                }
+                100% {
+                    transform: translate(-50%, -50%) scale(30);
+                    opacity: 0;
+                    filter: blur(150px);
+                }
             }
 
             .dust-canvas {
@@ -223,6 +286,7 @@ def storefront_view():
                 width: 100vw;
                 height: 100vh;
                 pointer-events: none;
+                z-index: 2;
             }
 
             .intro-stage {
@@ -232,30 +296,32 @@ def storefront_view():
                 align-items: center;
                 justify-content: center;
                 text-align: center;
-                z-index: 2;
+                z-index: 3;
             }
 
-            /* Phase 1: White Outline Drawing Top to Bottom */
+            /* Phase 1: White Laser Outline Drawing */
             .r-laser-outline {
                 stroke: #ffffff;
                 stroke-width: 4.5;
                 stroke-linecap: square;
                 stroke-linejoin: miter;
                 fill: transparent;
+                stroke-dasharray: 650;
+                stroke-dashoffset: 650;
                 animation: drawRPath 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
                 filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 35px rgba(255, 255, 255, 0.7));
             }
 
             @keyframes drawRPath {
-                0% { stroke-dashoffset: var(--r-length, 650); }
+                0% { stroke-dashoffset: 650; }
                 100% { stroke-dashoffset: 0; }
             }
 
-            /* Phase 2: Molten Gold Infusion with Radiant White Shadow */
+            /* Phase 2: Molten Gold Fill with Radiant White Shadow */
             .r-gold-liquid-fill {
                 opacity: 0;
-                animation: bloomMoltenGold 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards 1.6s,
-                           goldGlowPulse 3s infinite ease-in-out 3.1s;
+                animation: bloomMoltenGold 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards 1.5s,
+                           goldGlowPulse 3s infinite ease-in-out 3.0s;
             }
 
             @keyframes bloomMoltenGold {
@@ -287,7 +353,7 @@ def storefront_view():
                 }
             }
 
-            /* Phase 3: "Resins By R" Wordmark */
+            /* Phase 3: Brand Wordmark */
             .intro-title-caption {
                 font-family: 'Cinzel', serif;
                 font-size: clamp(14px, 3.2vw, 20px);
@@ -298,7 +364,7 @@ def storefront_view():
                 margin-top: 28px;
                 opacity: 0;
                 transform: translateY(14px);
-                animation: captionFloatIn 1.3s cubic-bezier(0.16, 1, 0.3, 1) forwards 2.3s;
+                animation: captionFloatIn 1.3s cubic-bezier(0.16, 1, 0.3, 1) forwards 2.1s;
                 text-shadow: 0 0 15px rgba(229, 184, 105, 0.5), 0 0 30px rgba(255, 255, 255, 0.4);
             }
 
@@ -329,10 +395,10 @@ def storefront_view():
                 background: rgba(229, 184, 105, 0.1);
             }
 
-            /* ================= HARDWARE-ACCELERATED IN-PAGE ANIMATIONS ================= */
+            /* ================= IN-PAGE BUTTERY ANIMATIONS ================= */
             .fade-in-up {
                 opacity: 0;
-                transform: translate3d(0, 30px, 0);
+                transform: translate3d(0, 26px, 0);
                 transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1), transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
                 will-change: opacity, transform;
             }
@@ -422,6 +488,7 @@ def storefront_view():
         <!-- STARTING ANIMATION SCREEN -->
         <div id="intro-overlay">
             <button class="skip-intro-btn" onclick="dismissIntro()">Skip ✕</button>
+            <div class="logo-backlight-burst"></div>
             <canvas id="dust-canvas" class="dust-canvas"></canvas>
             
             <div class="intro-stage">
@@ -439,17 +506,16 @@ def storefront_view():
                         </filter>
                     </defs>
 
-                    <!-- Phase 1: White Laser Outline Drawing -->
+                    <!-- Laser Outline -->
                     <path id="r-laser-path" class="r-laser-outline" 
                           d="M 56 198 L 56 34 L 122 34 C 162 34 162 112 122 112 L 56 112 M 112 112 L 166 198" />
                     
-                    <!-- Phase 2: Molten Gold Fill with Radiant White Shadow -->
+                    <!-- Molten Gold Fill with Radiant White Shadow -->
                     <path class="r-gold-liquid-fill" filter="url(#royalGlow)" fill="url(#goldDustLiquid)" 
                           d="M 56 198 L 56 34 L 122 34 C 162 34 162 112 122 112 L 56 112 M 112 112 L 166 198" 
                           stroke="url(#goldDustLiquid)" stroke-width="12" stroke-linecap="square" stroke-linejoin="miter" />
                 </svg>
 
-                <!-- Phase 3: Brand Wordmark -->
                 <div class="intro-title-caption">Resins By R</div>
             </div>
         </div>
@@ -457,7 +523,7 @@ def storefront_view():
         <div class="ambient-glow top-0 left-[-100px]"></div>
         <div class="ambient-glow bottom-0 right-[-100px]"></div>
 
-        <!-- WHOLE STOREFRONT PAGE -->
+        <!-- MAIN STORE VIEW -->
         <div id="page-main" class="relative z-10 w-full pb-48">
             <header class="sticky top-0 z-40 backdrop-blur-xl bg-black/75 border-b border-white/10 w-full">
                 <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -525,17 +591,17 @@ def storefront_view():
                     <!-- 1. Resin Ring -->
                     <div class="resin-card fade-in-up rounded-3xl p-6 flex flex-col justify-between">
                         <div>
-                            <div class="relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
+                            <div class="fade-in-up relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
                                 <img src="__IMG_PRODUCT_1__" 
                                      alt="Resin Ring" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
                                 <span class="absolute top-4 left-4 px-3 py-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-xs uppercase tracking-wider text-amber-300">Jewelry</span>
                             </div>
                             <div class="flex justify-between items-baseline mb-2">
-                                <h3 class="font-luxury text-2xl text-white">Resin Ring</h3>
-                                <span class="text-xl font-bold text-amber-300">PKR 800/-</span>
+                                <h3 class="fade-in-up font-luxury text-2xl text-white">Resin Ring</h3>
+                                <span class="fade-in-up text-xl font-bold text-amber-300">PKR 800/-</span>
                             </div>
-                            <p class="text-gray-400 text-sm mb-6">Polished glass-like epoxy ring infused with golden flakes and crystalline botanicals.</p>
-                            <div class="mb-6 bg-white/[0.02] p-4 rounded-xl border border-white/5">
+                            <p class="fade-in-up text-gray-400 text-sm mb-6">Polished glass-like epoxy ring infused with golden flakes and crystalline botanicals.</p>
+                            <div class="fade-in-up mb-6 bg-white/[0.02] p-4 rounded-xl border border-white/5">
                                 <label class="block text-xs uppercase tracking-wider text-gray-300 font-semibold mb-2">Select Size (US):</label>
                                 <div class="flex flex-wrap gap-2" id="ring-sizes">
                                     <button type="button" onclick="selectRingSize(this, 'US 5')" class="size-btn px-3.5 py-1.5 rounded-lg border border-amber-300 text-xs text-amber-300 bg-amber-300/10 transition">US 5</button>
@@ -559,17 +625,17 @@ def storefront_view():
                     <!-- 2. Resin Shield 6-Inch -->
                     <div class="resin-card fade-in-up rounded-3xl p-6 flex flex-col justify-between">
                         <div>
-                            <div class="relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
+                            <div class="fade-in-up relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
                                 <img src="__IMG_PRODUCT_2__" 
                                      alt="Resin Shield" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
                                 <span class="absolute top-4 left-4 px-3 py-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-xs uppercase tracking-wider text-amber-300">Keepsake</span>
                             </div>
                             <div class="flex justify-between items-baseline mb-2">
-                                <h3 class="font-luxury text-2xl text-white">Resins Shield (6-Inch)</h3>
-                                <span id="shield-price-display" class="text-xl font-bold text-amber-300">PKR 2,000/-</span>
+                                <h3 class="fade-in-up font-luxury text-2xl text-white">Resins Shield (6-Inch)</h3>
+                                <span id="shield-price-display" class="fade-in-up text-xl font-bold text-amber-300">PKR 2,000/-</span>
                             </div>
-                            <p class="text-gray-400 text-sm mb-4">6-inch solid resin plaque. Base price PKR 2,000/- with an option to embed up to 3 pictures (+PKR 100/- each).</p>
-                            <div class="mb-6 bg-white/[0.02] p-4 rounded-xl border border-white/5">
+                            <p class="fade-in-up text-gray-400 text-sm mb-4">6-inch solid resin plaque. Base price PKR 2,000/- with an option to embed up to 3 pictures (+PKR 100/- each).</p>
+                            <div class="fade-in-up mb-6 bg-white/[0.02] p-4 rounded-xl border border-white/5">
                                 <div class="flex justify-between items-center mb-3">
                                     <label class="text-xs uppercase tracking-wider text-gray-300 font-semibold">Embedded Pictures (Max 3):</label>
                                     <span class="text-xs text-amber-300 font-mono">+PKR 100 / pic</span>
@@ -603,16 +669,16 @@ def storefront_view():
                     <!-- 3. Resin 3D Chess Keychains -->
                     <div class="resin-card fade-in-up rounded-3xl p-6 flex flex-col justify-between">
                         <div>
-                            <div class="relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
+                            <div class="fade-in-up relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
                                 <img src="__IMG_PRODUCT_3__" 
                                      alt="3D Chess Keychains" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
                                 <span class="absolute top-4 left-4 px-3 py-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-xs uppercase tracking-wider text-amber-300">Collectibles</span>
                             </div>
                             <div class="flex justify-between items-baseline mb-2">
-                                <h3 class="font-luxury text-2xl text-white">Resin 3D Chess Keychains</h3>
-                                <span class="text-xl font-bold text-amber-300">PKR 500/-</span>
+                                <h3 class="fade-in-up font-luxury text-2xl text-white">Resin 3D Chess Keychains</h3>
+                                <span class="fade-in-up text-xl font-bold text-amber-300">PKR 500/-</span>
                             </div>
-                            <p class="text-gray-400 text-sm mb-6">Hand-poured 3D Chess pieces (Knight, Queen, King) with heavy shimmer mica and durable gold keyrings.</p>
+                            <p class="fade-in-up text-gray-400 text-sm mb-6">Hand-poured 3D Chess pieces (Knight, Queen, King) with heavy shimmer mica and durable gold keyrings.</p>
                         </div>
                         <div class="grid grid-cols-2 gap-3 pt-4 border-t border-white/5">
                             <button onclick="handleAddToCart('chess-keychain')" class="btn-glass py-3 rounded-xl text-xs uppercase tracking-widest font-semibold flex items-center justify-center gap-2">
@@ -627,16 +693,16 @@ def storefront_view():
                     <!-- 4. Resin Tray and Coaster Set -->
                     <div class="resin-card fade-in-up rounded-3xl p-6 flex flex-col justify-between">
                         <div>
-                            <div class="relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
+                            <div class="fade-in-up relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
                                 <img src="__IMG_PRODUCT_4__" 
                                      alt="Tray & Coaster Set" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
                                 <span class="absolute top-4 left-4 px-3 py-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-xs uppercase tracking-wider text-amber-300">Home Decor</span>
                             </div>
                             <div class="flex justify-between items-baseline mb-2">
-                                <h3 class="font-luxury text-2xl text-white">Resin Tray & Coaster Set</h3>
-                                <span class="text-xl font-bold text-amber-300">PKR 4,000/-</span>
+                                <h3 class="fade-in-up font-luxury text-2xl text-white">Resin Tray & Coaster Set</h3>
+                                <span class="fade-in-up text-xl font-bold text-amber-300">PKR 4,000/-</span>
                             </div>
-                            <p class="text-gray-400 text-sm mb-6">Complete luxury set: 1 signature serving tray and 4 matching coasters hand-embellished with gilded raw edges.</p>
+                            <p class="fade-in-up text-gray-400 text-sm mb-6">Complete luxury set: 1 signature serving tray and 4 matching coasters hand-embellished with gilded raw edges.</p>
                         </div>
                         <div class="grid grid-cols-2 gap-3 pt-4 border-t border-white/5">
                             <button onclick="handleAddToCart('tray-coaster-set')" class="btn-glass py-3 rounded-xl text-xs uppercase tracking-widest font-semibold flex items-center justify-center gap-2">
@@ -835,8 +901,8 @@ def storefront_view():
         </div>
 
         <script>
-            const DISCORD_WEBHOOK_URL = JSON.parse(__DISCORD_WEBHOOK_URL_JSON__);
-            const GSHEET_URL = JSON.parse(__GSHEET_URL_JSON__);
+            const DISCORD_WEBHOOK_URL = "__DISCORD_WEBHOOK_URL__";
+            const GSHEET_URL = "__GSHEET_URL__";
             const SELLER_WHATSAPP = "923058866692";
             const DELIVERY_FEE = 500;
             const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -871,12 +937,12 @@ def storefront_view():
                     laserPath.style.strokeDashoffset = totalLen;
                 }
 
-                // Autoplay through the sequence
+                // Smoothly dismiss at 4.6s after backlight shockwave floods screen
                 setTimeout(() => {
                     if (!introDismissed) {
                         dismissIntro();
                     }
-                }, 4800);
+                }, 4600);
             }
 
             function dismissIntro() {
@@ -884,13 +950,12 @@ def storefront_view():
                 introDismissed = true;
                 const intro = document.getElementById('intro-overlay');
                 if (intro) {
-                    intro.style.transition = 'opacity 1.2s cubic-bezier(0.25, 1, 0.5, 1)';
-                    intro.style.opacity = '0';
+                    intro.classList.add('dismissed');
                     setTimeout(() => {
                         intro.style.display = 'none';
                         introOverlayGone = true;
                         triggerScrollAnimations();
-                    }, 1200);
+                    }, 1300);
                 }
             }
 
@@ -1364,8 +1429,8 @@ def storefront_view():
         .replace("__IMG_PRODUCT_2__", IMG_PRODUCT_2)
         .replace("__IMG_PRODUCT_3__", IMG_PRODUCT_3)
         .replace("__IMG_PRODUCT_4__", IMG_PRODUCT_4)
-        .replace("__DISCORD_WEBHOOK_URL_JSON__", json.dumps(DISCORD_WEBHOOK_URL))
-        .replace("__GSHEET_URL_JSON__", json.dumps(GSHEET_URL))
+        .replace("__DISCORD_WEBHOOK_URL__", DISCORD_WEBHOOK_URL)
+        .replace("__GSHEET_URL__", GSHEET_URL)
     )
 
     components.html(rendered_html, height=2500, scrolling=True)
@@ -1434,7 +1499,7 @@ def admin_view():
         st.markdown(f"""
             - **Client Name:** {sanitize_admin_text(target.get('name', ''))}
             - **Products:** {sanitize_admin_text(target.get('products', ''))}
-            - **Address:** {sanitize_admin_text(target.get('address', ''))}
+            - **Address:** {sanitize_admin_text(target.get('address', '')))}
             - **Email:** {sanitize_admin_text(target.get('email', ''))}
         """)
         c1, c2 = st.columns(2)
