@@ -3,6 +3,7 @@ import json
 import time
 import hmac
 import html
+import re
 import base64
 import requests
 import streamlit as st
@@ -71,6 +72,17 @@ if "admin_locked_until" not in st.session_state:
 if "last_admin_fetch" not in st.session_state:
     st.session_state["last_admin_fetch"] = 0.0
 
+# ================= PROTOCOL: XSS & MARKDOWN INJECTION NEUTRALIZER =================
+def sanitize_admin_text(val):
+    if val is None:
+        return "N/A"
+    clean = str(val).strip()
+    clean = re.sub(r'<[^>]*>', '', clean)
+    clean = clean.replace('[', '&#91;').replace(']', '&#93;')
+    clean = clean.replace('(', '&#40;').replace(')', '&#41;')
+    clean = clean.replace('`', '&#96;').replace('*', '&#42;')
+    return html.escape(clean)
+
 # ================= SECURE BASE64 IMAGE LOADER =================
 def get_image_src(filename, fallback_url):
     safe_name = os.path.basename(filename)
@@ -84,8 +96,8 @@ def get_image_src(filename, fallback_url):
                         encoded = base64.b64encode(img_file.read()).decode()
                     mime = "image/png" if ext == "png" else f"image/{ext}"
                     return f"data:{mime};base64,{encoded}"
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[SECURE SERVER LOG] Image load error: {e}")
     return fallback_url
 
 IMG_PRODUCT_1 = get_image_src("Product1.jpg", "https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=800&auto=format&fit=crop")
@@ -103,8 +115,8 @@ def fetch_pending_orders_cached(url):
                 data = res.json()
                 if isinstance(data, list):
                     return [o for o in data if str(o.get("status", "")).strip().lower() == "pending"]
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[SECURE SERVER LOG] Sheet Fetch Error: {e}")
     return []
 
 def fetch_pending_orders():
@@ -124,7 +136,8 @@ def mark_order_dispatched(order_id):
                 success = True
                 st.cache_data.clear()
         except Exception as e:
-            st.error(f"Error updating Google Sheet dispatch: {e}")
+            print(f"[SECURE SERVER LOG] Sheet Dispatch Error: {e}")
+            st.error("Failed to update status on Google Sheets. Please check server logs.")
     
     for item in st.session_state["orders_db"]:
         if str(item.get("order_id")) == safe_order_id:
@@ -142,6 +155,8 @@ def storefront_view():
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: blob: https://fonts.googleapis.com https://fonts.gstatic.com https://cdn.tailwindcss.com https://unpkg.com https://images.unsplash.com https://wa.me; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://discord.com;">
+        
         <title>Resins by R</title>
         
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -185,14 +200,14 @@ def storefront_view():
             .font-luxury { font-family: 'Cinzel', serif; }
             .font-adam { font-family: 'Montserrat', sans-serif; font-weight: 900; }
 
-            /* ================= EXACT CENTERED INTRO OVERLAY ================= */
+            /* ================= HIGH-END STARTING ANIMATION ================= */
             #intro-overlay {
                 position: fixed;
                 top: 0;
                 left: 0;
                 width: 100vw;
                 height: 100vh;
-                background-color: #070709;
+                background-color: #050608;
                 z-index: 9999999;
                 display: flex;
                 flex-direction: column;
@@ -202,54 +217,93 @@ def storefront_view():
                 will-change: opacity;
             }
 
-            .intro-center-box {
+            .dust-canvas {
+                position: absolute;
+                inset: 0;
+                width: 100vw;
+                height: 100vh;
+                pointer-events: none;
+            }
+
+            .intro-stage {
+                position: relative;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
                 justify-content: center;
                 text-align: center;
+                z-index: 2;
             }
 
-            /* Golden "R" with Radiant White Shadow */
-            .intro-golden-r {
-                font-family: 'Montserrat', sans-serif;
-                font-size: clamp(90px, 16vw, 150px);
-                font-weight: 900;
-                line-height: 1;
-                letter-spacing: -0.02em;
-                background: linear-gradient(135deg, #ffffff 0%, #fff4cf 25%, #e5b869 60%, #b88328 100%);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.95)) 
-                        drop-shadow(0 0 45px rgba(255, 255, 255, 0.65))
-                        drop-shadow(0 0 70px rgba(229, 184, 105, 0.4));
+            /* Phase 1: White Outline Drawing Top to Bottom */
+            .r-laser-outline {
+                stroke: #ffffff;
+                stroke-width: 4.5;
+                stroke-linecap: square;
+                stroke-linejoin: miter;
+                fill: transparent;
+                animation: drawRPath 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+                filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 35px rgba(255, 255, 255, 0.7));
+            }
+
+            @keyframes drawRPath {
+                0% { stroke-dashoffset: var(--r-length, 650); }
+                100% { stroke-dashoffset: 0; }
+            }
+
+            /* Phase 2: Molten Gold Infusion with Radiant White Shadow */
+            .r-gold-liquid-fill {
                 opacity: 0;
-                transform: scale(0.92);
-                animation: rGoldenFadeIn 1.6s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.15s;
+                animation: bloomMoltenGold 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards 1.6s,
+                           goldGlowPulse 3s infinite ease-in-out 3.1s;
             }
 
-            @keyframes rGoldenFadeIn {
-                0% { opacity: 0; transform: scale(0.92); }
-                100% { opacity: 1; transform: scale(1); }
+            @keyframes bloomMoltenGold {
+                0% {
+                    opacity: 0;
+                    transform: scale(0.96);
+                    filter: blur(8px);
+                }
+                100% {
+                    opacity: 1;
+                    transform: scale(1);
+                    filter: blur(0px) 
+                            drop-shadow(0 0 25px rgba(255, 255, 255, 0.95)) 
+                            drop-shadow(0 0 50px rgba(229, 184, 105, 0.9)) 
+                            drop-shadow(0 0 85px rgba(255, 217, 132, 0.6));
+                }
             }
 
-            /* "Resins By R" text caption fades in below */
-            .intro-text-caption {
+            @keyframes goldGlowPulse {
+                0%, 100% {
+                    filter: drop-shadow(0 0 25px rgba(255, 255, 255, 0.95)) 
+                            drop-shadow(0 0 50px rgba(229, 184, 105, 0.9)) 
+                            drop-shadow(0 0 85px rgba(255, 217, 132, 0.6));
+                }
+                50% {
+                    filter: drop-shadow(0 0 35px rgba(255, 255, 255, 1)) 
+                            drop-shadow(0 0 70px rgba(229, 184, 105, 1)) 
+                            drop-shadow(0 0 110px rgba(255, 217, 132, 0.9));
+                }
+            }
+
+            /* Phase 3: "Resins By R" Wordmark */
+            .intro-title-caption {
                 font-family: 'Cinzel', serif;
-                font-size: clamp(14px, 3.2vw, 19px);
+                font-size: clamp(14px, 3.2vw, 20px);
                 font-weight: 700;
-                letter-spacing: 0.38em;
+                letter-spacing: 0.45em;
                 text-transform: uppercase;
-                color: #f3f4f6;
-                margin-top: 24px;
+                color: #fdfbf7;
+                margin-top: 28px;
                 opacity: 0;
-                transform: translateY(12px);
-                animation: textCaptionFadeIn 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards 1.4s;
-                text-shadow: 0 0 15px rgba(229, 184, 105, 0.4);
+                transform: translateY(14px);
+                animation: captionFloatIn 1.3s cubic-bezier(0.16, 1, 0.3, 1) forwards 2.3s;
+                text-shadow: 0 0 15px rgba(229, 184, 105, 0.5), 0 0 30px rgba(255, 255, 255, 0.4);
             }
 
-            @keyframes textCaptionFadeIn {
-                0% { opacity: 0; transform: translateY(12px); }
+            @keyframes captionFloatIn {
+                0% { opacity: 0; transform: translateY(14px); }
                 100% { opacity: 1; transform: translateY(0); }
             }
 
@@ -275,17 +329,17 @@ def storefront_view():
                 background: rgba(229, 184, 105, 0.1);
             }
 
-            /* ================= ONE-TIME WHOLE-PAGE FADE-IN-UPWARDS ================= */
-            #page-main {
+            /* ================= HARDWARE-ACCELERATED IN-PAGE ANIMATIONS ================= */
+            .fade-in-up {
                 opacity: 0;
-                transform: translateY(32px);
-                transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1), transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+                transform: translate3d(0, 30px, 0);
+                transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1), transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
                 will-change: opacity, transform;
             }
 
-            #page-main.page-revealed {
+            .fade-in-up.appeared {
                 opacity: 1 !important;
-                transform: translateY(0) !important;
+                transform: translate3d(0, 0, 0) !important;
             }
 
             .resin-card {
@@ -297,7 +351,7 @@ def storefront_view():
             }
 
             .resin-card:hover {
-                transform: translateY(-6px);
+                transform: translateY(-8px);
                 border-color: rgba(229, 184, 105, 0.5);
                 box-shadow: 0 25px 50px -15px var(--resin-gold-glow);
             }
@@ -309,6 +363,22 @@ def storefront_view():
                 position: relative;
                 overflow: hidden;
                 transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            .btn-gold::after {
+                content: '';
+                position: absolute;
+                top: -50%;
+                left: -70%;
+                width: 45%;
+                height: 200%;
+                background: rgba(255, 255, 255, 0.35);
+                transform: rotate(30deg);
+                transition: all 0.75s ease;
+            }
+
+            .btn-gold:hover::after {
+                left: 135%;
             }
 
             .btn-gold:hover {
@@ -349,27 +419,49 @@ def storefront_view():
     </head>
     <body>
 
-        <!-- INTRO OVERLAY SCREEN -->
+        <!-- STARTING ANIMATION SCREEN -->
         <div id="intro-overlay">
             <button class="skip-intro-btn" onclick="dismissIntro()">Skip ✕</button>
+            <canvas id="dust-canvas" class="dust-canvas"></canvas>
             
-            <div class="intro-center-box">
-                <!-- Golden "R" with White Shadow -->
-                <div class="intro-golden-r">R</div>
-                
-                <!-- "Resins By R" Fades In Below -->
-                <div class="intro-text-caption">Resins By R</div>
+            <div class="intro-stage">
+                <svg width="220" height="240" viewBox="0 0 200 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="goldDustLiquid" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#ffffff" />
+                            <stop offset="25%" stop-color="#fff8db" />
+                            <stop offset="60%" stop-color="#ffd984" />
+                            <stop offset="100%" stop-color="#b88328" />
+                        </linearGradient>
+                        <filter id="royalGlow" x="-25%" y="-25%" width="150%" height="150%">
+                            <feGaussianBlur stdDeviation="4" result="blur" />
+                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                        </filter>
+                    </defs>
+
+                    <!-- Phase 1: White Laser Outline Drawing -->
+                    <path id="r-laser-path" class="r-laser-outline" 
+                          d="M 56 198 L 56 34 L 122 34 C 162 34 162 112 122 112 L 56 112 M 112 112 L 166 198" />
+                    
+                    <!-- Phase 2: Molten Gold Fill with Radiant White Shadow -->
+                    <path class="r-gold-liquid-fill" filter="url(#royalGlow)" fill="url(#goldDustLiquid)" 
+                          d="M 56 198 L 56 34 L 122 34 C 162 34 162 112 122 112 L 56 112 M 112 112 L 166 198" 
+                          stroke="url(#goldDustLiquid)" stroke-width="12" stroke-linecap="square" stroke-linejoin="miter" />
+                </svg>
+
+                <!-- Phase 3: Brand Wordmark -->
+                <div class="intro-title-caption">Resins By R</div>
             </div>
         </div>
 
         <div class="ambient-glow top-0 left-[-100px]"></div>
         <div class="ambient-glow bottom-0 right-[-100px]"></div>
 
-        <!-- WHOLE STOREFRONT PAGE (Fades In Upwards Once as a Complete Unit) -->
+        <!-- WHOLE STOREFRONT PAGE -->
         <div id="page-main" class="relative z-10 w-full pb-48">
             <header class="sticky top-0 z-40 backdrop-blur-xl bg-black/75 border-b border-white/10 w-full">
                 <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-                    <a href="javascript:showPage('main')" class="flex items-center space-x-3">
+                    <a href="javascript:showPage('main')" class="fade-in-up flex items-center space-x-3">
                         <div class="w-10 h-10 rounded-full border border-amber-300/40 flex items-center justify-center bg-gradient-to-tr from-amber-600/30 to-amber-200/10">
                             <span class="font-adam text-amber-200 text-lg">R</span>
                         </div>
@@ -377,10 +469,10 @@ def storefront_view():
                     </a>
 
                     <div class="flex items-center space-x-4">
-                        <button onclick="showPage('policy')" class="text-xs uppercase tracking-widest text-gray-300 hover:text-amber-300 transition hidden sm:inline-block">
+                        <button onclick="showPage('policy')" class="fade-in-up text-xs uppercase tracking-widest text-gray-300 hover:text-amber-300 transition hidden sm:inline-block">
                             Policies
                         </button>
-                        <button onclick="toggleCartDrawer(true)" class="relative flex items-center space-x-2 px-5 py-2 rounded-full border border-white/15 bg-white/5 hover:border-amber-300/40 transition">
+                        <button onclick="toggleCartDrawer(true)" class="fade-in-up relative flex items-center space-x-2 px-5 py-2 rounded-full border border-white/15 bg-white/5 hover:border-amber-300/40 transition">
                             <i class="ph ph-handbag text-amber-300 text-lg"></i>
                             <span class="text-xs uppercase tracking-widest text-gray-200 font-medium">Cart</span>
                             <span id="nav-cart-count" class="ml-1 px-2 py-0.5 text-xs bg-amber-400 text-black font-bold rounded-full">0</span>
@@ -391,21 +483,21 @@ def storefront_view():
 
             <!-- Hero Section -->
             <section class="max-w-6xl mx-auto px-6 pt-20 pb-16 text-center relative z-10">
-                <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-amber-400/20 bg-amber-400/5 mb-6">
+                <div class="fade-in-up inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-amber-400/20 bg-amber-400/5 mb-6">
                     <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
                     <span class="text-xs uppercase tracking-widest text-amber-300 font-semibold">100% Handcrafted • Liquid Elegance</span>
                 </div>
 
-                <h1 class="font-luxury text-4xl sm:text-6xl md:text-7xl font-semibold tracking-tight text-white mb-6 leading-tight">
+                <h1 class="fade-in-up font-luxury text-4xl sm:text-6xl md:text-7xl font-semibold tracking-tight text-white mb-6 leading-tight">
                     Frozen In Time.<br>
                     <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-500">Liquid Luxury</span> Preserved.
                 </h1>
 
-                <p class="max-w-2xl mx-auto text-gray-400 text-sm md:text-base leading-relaxed mb-8">
+                <p class="fade-in-up max-w-2xl mx-auto text-gray-400 text-sm md:text-base leading-relaxed mb-8">
                     Museum-grade bio-resin, metallic mica, botanical inclusions, and real 24k gold leaf foil. Every piece is an unrepeatable bespoke keepsake.
                 </p>
 
-                <div class="flex items-center justify-center gap-4">
+                <div class="fade-in-up flex items-center justify-center gap-4">
                     <a href="#products-section" class="btn-gold px-8 py-3.5 rounded-full inline-flex items-center gap-3 text-xs tracking-widest uppercase">
                         <span>Explore Catalog</span>
                         <i class="ph ph-arrow-down text-sm"></i>
@@ -420,10 +512,10 @@ def storefront_view():
             <main id="products-section" class="max-w-7xl mx-auto px-6 py-12 relative z-10">
                 <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 border-b border-white/10 pb-6">
                     <div>
-                        <h2 class="font-luxury text-3xl tracking-wide text-white">Signature Collection</h2>
-                        <p class="text-gray-400 text-sm mt-1">Select choices, personalize colors, and upload cherished memories.</p>
+                        <h2 class="fade-in-up font-luxury text-3xl tracking-wide text-white">Signature Collection</h2>
+                        <p class="fade-in-up text-gray-400 text-sm mt-1">Select choices, personalize colors, and upload cherished memories.</p>
                     </div>
-                    <div class="mt-4 md:mt-0 text-amber-300 font-mono text-xs tracking-widest uppercase">
+                    <div class="fade-in-up mt-4 md:mt-0 text-amber-300 font-mono text-xs tracking-widest uppercase">
                         Flat Delivery: PKR 500/- Nationwide
                     </div>
                 </div>
@@ -431,7 +523,7 @@ def storefront_view():
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10">
                     
                     <!-- 1. Resin Ring -->
-                    <div class="resin-card rounded-3xl p-6 flex flex-col justify-between">
+                    <div class="resin-card fade-in-up rounded-3xl p-6 flex flex-col justify-between">
                         <div>
                             <div class="relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
                                 <img src="__IMG_PRODUCT_1__" 
@@ -465,7 +557,7 @@ def storefront_view():
                     </div>
 
                     <!-- 2. Resin Shield 6-Inch -->
-                    <div class="resin-card rounded-3xl p-6 flex flex-col justify-between">
+                    <div class="resin-card fade-in-up rounded-3xl p-6 flex flex-col justify-between">
                         <div>
                             <div class="relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
                                 <img src="__IMG_PRODUCT_2__" 
@@ -509,7 +601,7 @@ def storefront_view():
                     </div>
 
                     <!-- 3. Resin 3D Chess Keychains -->
-                    <div class="resin-card rounded-3xl p-6 flex flex-col justify-between">
+                    <div class="resin-card fade-in-up rounded-3xl p-6 flex flex-col justify-between">
                         <div>
                             <div class="relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
                                 <img src="__IMG_PRODUCT_3__" 
@@ -533,7 +625,7 @@ def storefront_view():
                     </div>
 
                     <!-- 4. Resin Tray and Coaster Set -->
-                    <div class="resin-card rounded-3xl p-6 flex flex-col justify-between">
+                    <div class="resin-card fade-in-up rounded-3xl p-6 flex flex-col justify-between">
                         <div>
                             <div class="relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
                                 <img src="__IMG_PRODUCT_4__" 
@@ -562,7 +654,7 @@ def storefront_view():
             <!-- Footer -->
             <footer class="border-t border-white/10 bg-black/80 py-16 px-6 mt-20 relative z-10 w-full">
                 <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
-                    <div>
+                    <div class="fade-in-up">
                         <h3 class="font-luxury text-lg text-white">RESINS BY R</h3>
                         <p class="text-xs text-gray-400 mt-1">Direct inquiries & instant support:</p>
                         <a href="https://wa.me/923058866692?text=Assalamo-alaikum%20Resins%20by%20R%2C%20I%20have%20an%20inquiry%20regarding%20bespoke%20orders." 
@@ -572,7 +664,7 @@ def storefront_view():
                             <span>0305-8866692 (Ramsha Fatima)</span>
                         </a>
                     </div>
-                    <div class="flex items-center gap-6 text-xs text-gray-400">
+                    <div class="fade-in-up flex items-center gap-6 text-xs text-gray-400">
                         <button onclick="showPage('policy')" class="hover:text-amber-300 transition">Studio Policies</button>
                         <button onclick="showPage('404')" class="hover:text-amber-300 transition">Error 404 Preview</button>
                     </div>
@@ -743,8 +835,8 @@ def storefront_view():
         </div>
 
         <script>
-            const DISCORD_WEBHOOK_URL = "__DISCORD_WEBHOOK_URL__";
-            const GSHEET_URL = "__GSHEET_URL__";
+            const DISCORD_WEBHOOK_URL = JSON.parse(__DISCORD_WEBHOOK_URL_JSON__);
+            const GSHEET_URL = JSON.parse(__GSHEET_URL_JSON__);
             const SELLER_WHATSAPP = "923058866692";
             const DELIVERY_FEE = 500;
             const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -756,34 +848,134 @@ def storefront_view():
             let shieldUploadedBlobs = [];
             let quickOrderItem = null;
             let introDismissed = false;
+            let introOverlayGone = false;
 
-            // ================= NEW ANIMATION SEQUENCE =================
-            function startIntroSequence() {
+            function escapeHtml(str) {
+                if (typeof str !== 'string') return str;
+                return str.replace(/[&<>'"]/g, tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag));
+            }
+
+            // ================= PRECISE STARTING ANIMATION =================
+            function setupIntroSequence() {
+                const laserPath = document.getElementById('r-laser-path');
+                if (laserPath) {
+                    const totalLen = laserPath.getTotalLength();
+                    laserPath.style.setProperty('--r-length', totalLen);
+                    laserPath.style.strokeDasharray = totalLen;
+                    laserPath.style.strokeDashoffset = totalLen;
+                }
+
+                // Autoplay through the sequence
                 setTimeout(() => {
                     if (!introDismissed) {
                         dismissIntro();
                     }
-                }, 3800);
+                }, 4800);
             }
 
             function dismissIntro() {
                 if (introDismissed) return;
                 introDismissed = true;
                 const intro = document.getElementById('intro-overlay');
-                const pageMain = document.getElementById('page-main');
                 if (intro) {
                     intro.style.transition = 'opacity 1.2s cubic-bezier(0.25, 1, 0.5, 1)';
                     intro.style.opacity = '0';
                     setTimeout(() => {
                         intro.style.display = 'none';
-                        if (pageMain) {
-                            pageMain.classList.add('page-revealed');
-                        }
-                    }, 400); // Reveals the whole page in a single upward glide
+                        introOverlayGone = true;
+                        triggerScrollAnimations();
+                    }, 1200);
                 }
             }
 
-            startIntroSequence();
+            // Gold Dust Ember Canvas
+            const canvas = document.getElementById('dust-canvas');
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+            function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            for(let i=0; i<60; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: Math.random() * 2.2 + 0.6,
+                    color: Math.random() > 0.35 ? '#e5b869' : '#ffffff',
+                    vy: -Math.random() * 0.7 - 0.2,
+                    vx: (Math.random() - 0.5) * 0.4,
+                    alpha: Math.random() * 0.8 + 0.2
+                });
+            }
+
+            function animateDust() {
+                if (introOverlayGone) return;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(p => {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = p.alpha;
+                    ctx.shadowBlur = 6;
+                    ctx.shadowColor = p.color;
+                    ctx.fill();
+                    p.y += p.vy; p.x += p.vx;
+                    if(p.y < 0) p.y = canvas.height;
+                    if(p.x < 0) p.x = canvas.width;
+                    if(p.x > canvas.width) p.x = 0;
+                });
+                requestAnimationFrame(animateDust);
+            }
+
+            setupIntroSequence();
+            animateDust();
+
+            // ================= RELIABLE IN-PAGE SCROLL ANIMATIONS =================
+            function triggerScrollAnimations() {
+                const elements = document.querySelectorAll('.fade-in-up');
+                
+                function isElementInViewport(el) {
+                    const rect = el.getBoundingClientRect();
+                    return rect.top <= (window.innerHeight || document.documentElement.clientHeight) + 70;
+                }
+
+                function checkAndReveal() {
+                    elements.forEach((el, index) => {
+                        if (!el.classList.contains('appeared') && isElementInViewport(el)) {
+                            setTimeout(() => {
+                                el.classList.add('appeared');
+                            }, (index % 4) * 70);
+                        }
+                    });
+                }
+
+                if ('IntersectionObserver' in window) {
+                    const observer = new IntersectionObserver((entries) => {
+                        entries.forEach((entry) => {
+                            if (entry.isIntersecting) {
+                                entry.target.classList.add('appeared');
+                                observer.unobserve(entry.target);
+                            }
+                        });
+                    }, { root: null, rootMargin: '0px 0px 90px 0px', threshold: 0.05 });
+
+                    elements.forEach(el => observer.observe(el));
+                }
+
+                window.addEventListener('scroll', checkAndReveal, { passive: true });
+                checkAndReveal();
+
+                setTimeout(checkAndReveal, 500);
+                setTimeout(() => {
+                    elements.forEach(el => el.classList.add('appeared'));
+                }, 2800);
+            }
 
             // ================= FILE INTEGRITY & ANTI-MALWARE VERIFICATION =================
             function verifyMagicBytes(file) {
@@ -875,9 +1067,8 @@ def storefront_view():
                 document.getElementById('page-policy').classList.add('hidden');
                 document.getElementById('page-404').classList.add('hidden');
                 if (page === 'main') {
-                    const pageMain = document.getElementById('page-main');
-                    pageMain.classList.remove('hidden');
-                    pageMain.classList.add('page-revealed');
+                    document.getElementById('page-main').classList.remove('hidden');
+                    triggerScrollAnimations();
                 } else if (page === 'policy') {
                     document.getElementById('page-policy').classList.remove('hidden');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -955,8 +1146,8 @@ def storefront_view():
                     html += `
                         <div class="p-4 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between">
                             <div>
-                                <h4 class="text-sm font-semibold text-white">${item.name}</h4>
-                                <p class="text-xs text-amber-300">${item.spec}</p>
+                                <h4 class="text-sm font-semibold text-white">${escapeHtml(item.name)}</h4>
+                                <p class="text-xs text-amber-300">${escapeHtml(item.spec)}</p>
                                 <span class="text-xs font-mono text-gray-400 mt-1 block">Qty: ${item.qty} × PKR ${item.price}/-</span>
                             </div>
                             <div class="flex items-center gap-3">
@@ -1012,7 +1203,7 @@ def storefront_view():
                 const now = Math.floor(Date.now() / 1000);
                 if (lastOrderTime && (now - parseInt(lastOrderTime)) < SUBMIT_COOLDOWN_SECONDS) {
                     const remaining = SUBMIT_COOLDOWN_SECONDS - (now - parseInt(lastOrderTime));
-                    alert(`⚠️ Studio Queue Cooldown:\nPlease wait ${remaining}s before submitting another bespoke order.`);
+                    alert(`Studio Queue Cooldown:\nPlease wait ${remaining}s before submitting another order.`);
                     return;
                 }
 
@@ -1072,7 +1263,7 @@ def storefront_view():
                 const grandTotal = subtotal + DELIVERY_FEE;
                 const productsListString = activeItems.map(i => `${i.name} (x${i.qty})`).join(', ');
 
-                // Send to Google Sheet
+                // Send to Google Sheet with Formula Shields
                 if (GSHEET_URL && GSHEET_URL.startsWith('http')) {
                     try {
                         const gsheetPayload = JSON.stringify({
@@ -1095,15 +1286,19 @@ def storefront_view():
                     }
                 }
 
-                // Send to Discord Webhook
+                // Send to Discord Webhook with @everyone Protection & Markdown link neutralization
                 if (DISCORD_WEBHOOK_URL && DISCORD_WEBHOOK_URL.startsWith('http')) {
                     const formData = new FormData();
+                    
+                    const cleanNameForDiscord = fullName.replace(/[@\[\]()]/g, '');
+                    const cleanNotesForDiscord = notes.replace(/[\[\]()]/g, '');
+
                     const embedPayload = {
-                        title: `✨ New Bespoke Order: ${orderId}`,
+                        title: `New Order: ${orderId}`,
                         color: 15054953,
                         fields: [
                             { name: "Order ID", value: orderId, inline: true },
-                            { name: "Client Name", value: fullName, inline: true },
+                            { name: "Client Name", value: cleanNameForDiscord, inline: true },
                             { name: "Email", value: email, inline: true },
                             { name: "Phone", value: phone, inline: true },
                             { name: "Delivery Address", value: address, inline: false },
@@ -1111,14 +1306,14 @@ def storefront_view():
                             { name: "Payment Account", value: "0305-8866692 (Ramsha Fatima)", inline: true },
                             { name: "Products Ordered", value: productsListString, inline: false },
                             { name: "Total Amount", value: `PKR ${grandTotal}/-`, inline: true },
-                            { name: "Custom Notes", value: notes, inline: false }
+                            { name: "Custom Notes", value: cleanNotesForDiscord, inline: false }
                         ],
                         footer: { text: "Resins by R • Zero-Trust Pipeline" },
                         timestamp: new Date().toISOString()
                     };
 
                     formData.append("payload_json", JSON.stringify({
-                        content: `🚨 **New Order Received from ${fullName.replace(/@/g, '')}** | Order ID: \`${orderId}\``,
+                        content: `**New Order Received from ${cleanNameForDiscord}** | Order ID: \`${orderId}\``,
                         embeds: [embedPayload],
                         allowed_mentions: { parse: [] }
                     }));
@@ -1163,20 +1358,19 @@ def storefront_view():
     </html>
     """
 
-    # Safe variable replacement without Python f-string bracket collisions
     rendered_html = (
         HTML_TEMPLATE
         .replace("__IMG_PRODUCT_1__", IMG_PRODUCT_1)
         .replace("__IMG_PRODUCT_2__", IMG_PRODUCT_2)
         .replace("__IMG_PRODUCT_3__", IMG_PRODUCT_3)
         .replace("__IMG_PRODUCT_4__", IMG_PRODUCT_4)
-        .replace("__DISCORD_WEBHOOK_URL__", DISCORD_WEBHOOK_URL)
-        .replace("__GSHEET_URL__", GSHEET_URL)
+        .replace("__DISCORD_WEBHOOK_URL_JSON__", json.dumps(DISCORD_WEBHOOK_URL))
+        .replace("__GSHEET_URL_JSON__", json.dumps(GSHEET_URL))
     )
 
     components.html(rendered_html, height=2500, scrolling=True)
 
-# ================= SECURED OWNER ADMIN DASHBOARD =================
+# ================= SECURED OWNER ADMIN DASHBOARD (XSS & MARKDOWN IMMUNE) =================
 def admin_view():
     st.title("Resins by R • Owner Admin Portal")
     st.caption("PENDING ORDERS FULFILLMENT & DISPATCH QUEUE")
@@ -1186,7 +1380,7 @@ def admin_view():
     # 1. Brute-Force Lockout Guard
     if now < st.session_state["admin_locked_until"]:
         lock_remaining = int(st.session_state["admin_locked_until"] - now)
-        st.error(f"🛑 Security Alert: Maximum login attempts exceeded. Portal locked for {lock_remaining} seconds.")
+        st.error(f"Security Alert: Maximum login attempts exceeded. Portal locked for {lock_remaining} seconds.")
         return
 
     # 2. Timing-Attack Proof Authentication (Zero unsafe_allow_html)
@@ -1208,7 +1402,7 @@ def admin_view():
                         st.session_state["admin_failed_attempts"] += 1
                         if st.session_state["admin_failed_attempts"] >= 5:
                             st.session_state["admin_locked_until"] = now + 900
-                            st.error("🛑 Too many failed attempts. Admin locked for 15 minutes.")
+                            st.error("Too many failed attempts. Admin locked for 15 minutes.")
                         else:
                             st.error(f"Invalid credentials. Attempt {st.session_state['admin_failed_attempts']} of 5.")
         return
@@ -1216,9 +1410,9 @@ def admin_view():
     # 3. Authenticated Dashboard Header
     col_l, col_m, col_r = st.columns([4, 2, 1])
     with col_l:
-        st.write(f"Logged in as: **{html.escape(ADMIN_NAME)}**")
+        st.write(f"Logged in as: **{sanitize_admin_text(ADMIN_NAME)}**")
     with col_m:
-        if st.button("🔄 Sync with Google Sheet"):
+        if st.button("Sync with Google Sheet"):
             if now - st.session_state["last_admin_fetch"] < 5.0:
                 st.warning("Please wait 5 seconds before refreshing Google Sheets.")
             else:
@@ -1232,27 +1426,27 @@ def admin_view():
 
     pending_orders = fetch_pending_orders()
 
-    # 4. Confirmation Dialog for Dispatching
+    # 4. Confirmation Dialog with Markdown & HTML Injection Neutralization
     if st.session_state["dispatch_target"]:
         target = st.session_state["dispatch_target"]
-        order_id_safe = html.escape(str(target.get('order_id', '')))
-        st.warning(f"⚠️ **Confirm Dispatch For Order #{order_id_safe}?**")
+        order_id_safe = sanitize_admin_text(target.get('order_id', ''))
+        st.warning(f"**Confirm Dispatch For Order #{order_id_safe}?**")
         st.markdown(f"""
-            - **Client Name:** {html.escape(str(target.get('name', '')))}
-            - **Products:** {html.escape(str(target.get('products', '')))}
-            - **Address:** {html.escape(str(target.get('address', '')))}
-            - **Email:** {html.escape(str(target.get('email', '')))}
+            - **Client Name:** {sanitize_admin_text(target.get('name', ''))}
+            - **Products:** {sanitize_admin_text(target.get('products', ''))}
+            - **Address:** {sanitize_admin_text(target.get('address', ''))}
+            - **Email:** {sanitize_admin_text(target.get('email', ''))}
         """)
         c1, c2 = st.columns(2)
         with c1:
-            if st.button("✅ Yes, Confirm & Update Google Sheets", use_container_width=True):
+            if st.button("Yes, Confirm & Update Google Sheets", use_container_width=True):
                 success = mark_order_dispatched(target.get("order_id"))
                 if success:
                     st.success(f"Order #{order_id_safe} successfully marked as Dispatched in Google Sheets!")
                 st.session_state["dispatch_target"] = None
                 st.rerun()
         with c2:
-            if st.button("❌ Cancel", use_container_width=True):
+            if st.button("Cancel", use_container_width=True):
                 st.session_state["dispatch_target"] = None
                 st.rerun()
         st.divider()
@@ -1260,7 +1454,7 @@ def admin_view():
     st.subheader(f"Pending Orders ({len(pending_orders)})")
 
     if not pending_orders:
-        st.info("✨ No pending orders to dispatch at this time. All orders are fulfilled!")
+        st.info("No pending orders to dispatch at this time. All orders are fulfilled!")
         return
 
     # Table Header
@@ -1271,16 +1465,16 @@ def admin_view():
 
     st.divider()
 
-    # Render Order Rows with 100% Native Safe Streamlit Syntax (Zero unsafe_allow_html)
+    # PROTOCOL: Render Rows with Dual Markdown/HTML Sanitization
     for idx, order in enumerate(pending_orders):
         cols = st.columns([1, 2, 3, 3, 2, 2, 2, 2, 2])
-        cols[0].write(html.escape(str(order.get("sr_no", idx + 1))))
-        cols[1].write(html.escape(str(order.get("name", "N/A"))))
-        cols[2].write(html.escape(str(order.get("address", "N/A"))))
-        cols[3].write(html.escape(str(order.get("products", "N/A"))))
-        cols[4].write(html.escape(str(order.get("customization", "None"))))
-        cols[5].write(html.escape(str(order.get("email", "N/A"))))
-        cols[6].markdown(f"`{html.escape(str(order.get('order_id', '')))}`")
+        cols[0].write(sanitize_admin_text(order.get("sr_no", idx + 1)))
+        cols[1].write(sanitize_admin_text(order.get("name", "N/A")))
+        cols[2].write(sanitize_admin_text(order.get("address", "N/A")))
+        cols[3].write(sanitize_admin_text(order.get("products", "N/A")))
+        cols[4].write(sanitize_admin_text(order.get("customization", "None")))
+        cols[5].write(sanitize_admin_text(order.get("email", "N/A")))
+        cols[6].markdown(f"`{sanitize_admin_text(order.get('order_id', ''))}`")
         cols[7].markdown(":orange[**Pending**]")
 
         safe_btn_key = f"disp_{order.get('order_id', idx)}_{idx}"
