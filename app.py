@@ -155,15 +155,14 @@ def storefront_view():
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <!-- Strict Content Security Policy (Prevents Unauthorized Script Execution) -->
-        <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: blob: https://fonts.googleapis.com https://fonts.gstatic.com https://cdn.tailwindcss.com https://unpkg.com https://images.unsplash.com https://wa.me; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://discord.com;">
+        <!-- Strict Content Security Policy -->
+        <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: blob: https://fonts.googleapis.com https://fonts.gstatic.com https://cdn.tailwindcss.com https://images.unsplash.com https://wa.me; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://discord.com;">
         
         <title>Resins by R</title>
         
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800&family=Montserrat:wght@800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-        <script src="https://unpkg.com/@phosphor-icons/web"></script>
         <script src="https://cdn.tailwindcss.com"></script>
 
         <style>
@@ -203,7 +202,7 @@ def storefront_view():
 
             /* ================= FAILSAFE AUTO-DISMISSING INTRO OVERLAY ================= */
             @keyframes autoDismissOverlay {
-                0%, 80% { opacity: 1; pointer-events: all; visibility: visible; }
+                0%, 82% { opacity: 1; pointer-events: all; visibility: visible; }
                 95% { opacity: 0; pointer-events: none; visibility: visible; }
                 100% { opacity: 0; pointer-events: none; visibility: hidden; display: none; }
             }
@@ -239,7 +238,7 @@ def storefront_view():
                 width: 180px;
                 height: 180px;
                 border-radius: 50%;
-                background: radial-gradient(circle, rgba(255, 255, 255, 1) 0%, rgba(255, 225, 130, 0.9) 20%, rgba(229, 184, 105, 0.6) 45%, rgba(184, 131, 40, 0) 70%);
+                background: radial-gradient(circle, rgba(255, 255, 255, 1) 0%, rgba(255, 230, 140, 0.9) 20%, rgba(229, 184, 105, 0.6) 45%, rgba(184, 131, 40, 0) 70%);
                 filter: blur(30px);
                 pointer-events: none;
                 z-index: 1;
@@ -253,28 +252,28 @@ def storefront_view():
                     transform: translate(-50%, -50%) scale(0.2);
                     opacity: 0;
                 }
-                30% {
+                25% {
                     transform: translate(-50%, -50%) scale(1);
                     opacity: 0.85;
                     filter: blur(35px);
                 }
-                55% {
-                    transform: translate(-50%, -50%) scale(1.4);
+                50% {
+                    transform: translate(-50%, -50%) scale(1.5);
                     opacity: 1;
                     filter: blur(45px);
                 }
                 75% {
-                    transform: translate(-50%, -50%) scale(6);
-                    opacity: 0.85;
-                    filter: blur(70px);
+                    transform: translate(-50%, -50%) scale(7);
+                    opacity: 0.8;
+                    filter: blur(75px);
                 }
                 95% {
-                    transform: translate(-50%, -50%) scale(22);
+                    transform: translate(-50%, -50%) scale(24);
                     opacity: 0.15;
                     filter: blur(120px);
                 }
                 100% {
-                    transform: translate(-50%, -50%) scale(30);
+                    transform: translate(-50%, -50%) scale(32);
                     opacity: 0;
                     filter: blur(150px);
                 }
@@ -299,61 +298,41 @@ def storefront_view():
                 z-index: 3;
             }
 
-            /* Phase 1: White Laser Outline Drawing */
-            .r-laser-outline {
-                stroke: #ffffff;
-                stroke-width: 4.5;
-                stroke-linecap: square;
-                stroke-linejoin: miter;
+            /* ================= FLUID CALLIGRAPHY "R" WRITING ANIMATION ================= */
+            .r-calligraphy-stroke {
+                stroke: url(#goldCalligraphyGrad);
+                stroke-width: 5.5;
+                stroke-linecap: round;
+                stroke-linejoin: round;
                 fill: transparent;
-                stroke-dasharray: 650;
-                stroke-dashoffset: 650;
-                animation: drawRPath 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-                filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 35px rgba(255, 255, 255, 0.7));
+                stroke-dasharray: 800;
+                stroke-dashoffset: 800;
+                animation: writeCalligraphyR 2.2s cubic-bezier(0.42, 0, 0.2, 1) forwards 0.2s,
+                           glowCalligraphyPulse 3s infinite ease-in-out 2.4s;
+                filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.95)) 
+                        drop-shadow(0 0 35px rgba(229, 184, 105, 0.9))
+                        drop-shadow(0 0 60px rgba(255, 217, 132, 0.6));
             }
 
-            @keyframes drawRPath {
-                0% { stroke-dashoffset: 650; }
+            @keyframes writeCalligraphyR {
+                0% { stroke-dashoffset: 800; }
                 100% { stroke-dashoffset: 0; }
             }
 
-            /* Phase 2: Molten Gold Fill with Radiant White Shadow */
-            .r-gold-liquid-fill {
-                opacity: 0;
-                animation: bloomMoltenGold 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards 1.5s,
-                           goldGlowPulse 3s infinite ease-in-out 3.0s;
-            }
-
-            @keyframes bloomMoltenGold {
-                0% {
-                    opacity: 0;
-                    transform: scale(0.96);
-                    filter: blur(8px);
-                }
-                100% {
-                    opacity: 1;
-                    transform: scale(1);
-                    filter: blur(0px) 
-                            drop-shadow(0 0 25px rgba(255, 255, 255, 0.95)) 
-                            drop-shadow(0 0 50px rgba(229, 184, 105, 0.9)) 
-                            drop-shadow(0 0 85px rgba(255, 217, 132, 0.6));
-                }
-            }
-
-            @keyframes goldGlowPulse {
+            @keyframes glowCalligraphyPulse {
                 0%, 100% {
-                    filter: drop-shadow(0 0 25px rgba(255, 255, 255, 0.95)) 
-                            drop-shadow(0 0 50px rgba(229, 184, 105, 0.9)) 
-                            drop-shadow(0 0 85px rgba(255, 217, 132, 0.6));
+                    filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.95)) 
+                            drop-shadow(0 0 35px rgba(229, 184, 105, 0.9))
+                            drop-shadow(0 0 60px rgba(255, 217, 132, 0.6));
                 }
                 50% {
-                    filter: drop-shadow(0 0 35px rgba(255, 255, 255, 1)) 
-                            drop-shadow(0 0 70px rgba(229, 184, 105, 1)) 
-                            drop-shadow(0 0 110px rgba(255, 217, 132, 0.9));
+                    filter: drop-shadow(0 0 25px rgba(255, 255, 255, 1)) 
+                            drop-shadow(0 0 55px rgba(229, 184, 105, 1))
+                            drop-shadow(0 0 85px rgba(255, 217, 132, 0.9));
                 }
             }
 
-            /* Phase 3: Brand Wordmark */
+            /* Brand Wordmark */
             .intro-title-caption {
                 font-family: 'Cinzel', serif;
                 font-size: clamp(14px, 3.2vw, 20px);
@@ -361,10 +340,10 @@ def storefront_view():
                 letter-spacing: 0.45em;
                 text-transform: uppercase;
                 color: #fdfbf7;
-                margin-top: 28px;
+                margin-top: 24px;
                 opacity: 0;
                 transform: translateY(14px);
-                animation: captionFloatIn 1.3s cubic-bezier(0.16, 1, 0.3, 1) forwards 2.1s;
+                animation: captionFloatIn 1.3s cubic-bezier(0.16, 1, 0.3, 1) forwards 2.0s;
                 text-shadow: 0 0 15px rgba(229, 184, 105, 0.5), 0 0 30px rgba(255, 255, 255, 0.4);
             }
 
@@ -492,28 +471,19 @@ def storefront_view():
             <canvas id="dust-canvas" class="dust-canvas"></canvas>
             
             <div class="intro-stage">
-                <svg width="220" height="240" viewBox="0 0 200 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg width="240" height="260" viewBox="0 0 240 260" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <defs>
-                        <linearGradient id="goldDustLiquid" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <linearGradient id="goldCalligraphyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                             <stop offset="0%" stop-color="#ffffff" />
                             <stop offset="25%" stop-color="#fff8db" />
                             <stop offset="60%" stop-color="#ffd984" />
                             <stop offset="100%" stop-color="#b88328" />
                         </linearGradient>
-                        <filter id="royalGlow" x="-25%" y="-25%" width="150%" height="150%">
-                            <feGaussianBlur stdDeviation="4" result="blur" />
-                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                        </filter>
                     </defs>
 
-                    <!-- Laser Outline -->
-                    <path id="r-laser-path" class="r-laser-outline" 
-                          d="M 56 198 L 56 34 L 122 34 C 162 34 162 112 122 112 L 56 112 M 112 112 L 166 198" />
-                    
-                    <!-- Molten Gold Fill with Radiant White Shadow -->
-                    <path class="r-gold-liquid-fill" filter="url(#royalGlow)" fill="url(#goldDustLiquid)" 
-                          d="M 56 198 L 56 34 L 122 34 C 162 34 162 112 122 112 L 56 112 M 112 112 L 166 198" 
-                          stroke="url(#goldDustLiquid)" stroke-width="12" stroke-linecap="square" stroke-linejoin="miter" />
+                    <!-- Fluid Calligraphy 'R' Path (simulates quill writing top-to-bottom with cursive flourishes) -->
+                    <path id="calligraphy-r-path" class="r-calligraphy-stroke" 
+                          d="M 64 68 C 82 42, 114 34, 138 34 C 174 34 190 58 190 86 C 190 118 156 136 116 136 M 106 48 C 98 90, 88 152, 82 205 C 80 218, 68 222, 62 212 C 56 200, 70 180, 88 136 C 112 136 134 136 148 154 C 166 178 184 206 208 206 C 218 206 226 198 228 190" />
                 </svg>
 
                 <div class="intro-title-caption">Resins By R</div>
@@ -539,7 +509,11 @@ def storefront_view():
                             Policies
                         </button>
                         <button onclick="toggleCartDrawer(true)" class="fade-in-up relative flex items-center space-x-2 px-5 py-2 rounded-full border border-white/15 bg-white/5 hover:border-amber-300/40 transition">
-                            <i class="ph ph-handbag text-amber-300 text-lg"></i>
+                            <svg class="w-4 h-4 text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                                <line x1="3" y1="6" x2="21" y2="6"></line>
+                                <path d="M16 10a4 4 0 0 1-8 0"></path>
+                            </svg>
                             <span class="text-xs uppercase tracking-widest text-gray-200 font-medium">Cart</span>
                             <span id="nav-cart-count" class="ml-1 px-2 py-0.5 text-xs bg-amber-400 text-black font-bold rounded-full">0</span>
                         </button>
@@ -566,7 +540,7 @@ def storefront_view():
                 <div class="fade-in-up flex items-center justify-center gap-4">
                     <a href="#products-section" class="btn-gold px-8 py-3.5 rounded-full inline-flex items-center gap-3 text-xs tracking-widest uppercase">
                         <span>Explore Catalog</span>
-                        <i class="ph ph-arrow-down text-sm"></i>
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
                     </a>
                     <button onclick="showPage('policy')" class="btn-glass px-7 py-3.5 rounded-full text-xs tracking-widest uppercase text-gray-300">
                         Policies
@@ -591,17 +565,17 @@ def storefront_view():
                     <!-- 1. Resin Ring -->
                     <div class="resin-card fade-in-up rounded-3xl p-6 flex flex-col justify-between">
                         <div>
-                            <div class="fade-in-up relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
+                            <div class="relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
                                 <img src="__IMG_PRODUCT_1__" 
                                      alt="Resin Ring" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
                                 <span class="absolute top-4 left-4 px-3 py-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-xs uppercase tracking-wider text-amber-300">Jewelry</span>
                             </div>
                             <div class="flex justify-between items-baseline mb-2">
-                                <h3 class="fade-in-up font-luxury text-2xl text-white">Resin Ring</h3>
-                                <span class="fade-in-up text-xl font-bold text-amber-300">PKR 800/-</span>
+                                <h3 class="font-luxury text-2xl text-white">Resin Ring</h3>
+                                <span class="text-xl font-bold text-amber-300">PKR 800/-</span>
                             </div>
-                            <p class="fade-in-up text-gray-400 text-sm mb-6">Polished glass-like epoxy ring infused with golden flakes and crystalline botanicals.</p>
-                            <div class="fade-in-up mb-6 bg-white/[0.02] p-4 rounded-xl border border-white/5">
+                            <p class="text-gray-400 text-sm mb-6">Polished glass-like epoxy ring infused with golden flakes and crystalline botanicals.</p>
+                            <div class="mb-6 bg-white/[0.02] p-4 rounded-xl border border-white/5">
                                 <label class="block text-xs uppercase tracking-wider text-gray-300 font-semibold mb-2">Select Size (US):</label>
                                 <div class="flex flex-wrap gap-2" id="ring-sizes">
                                     <button type="button" onclick="selectRingSize(this, 'US 5')" class="size-btn px-3.5 py-1.5 rounded-lg border border-amber-300 text-xs text-amber-300 bg-amber-300/10 transition">US 5</button>
@@ -614,7 +588,7 @@ def storefront_view():
                         </div>
                         <div class="grid grid-cols-2 gap-3 pt-4 border-t border-white/5">
                             <button onclick="handleAddToCart('resin-ring')" class="btn-glass py-3 rounded-xl text-xs uppercase tracking-widest font-semibold flex items-center justify-center gap-2">
-                                <i class="ph ph-shopping-bag"></i> Add To Cart
+                                Add To Cart
                             </button>
                             <button onclick="handleQuickOrder('resin-ring')" class="btn-gold py-3 rounded-xl text-xs uppercase tracking-widest font-bold">
                                 Order Now
@@ -625,29 +599,42 @@ def storefront_view():
                     <!-- 2. Resin Shield 6-Inch -->
                     <div class="resin-card fade-in-up rounded-3xl p-6 flex flex-col justify-between">
                         <div>
-                            <div class="fade-in-up relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
+                            <div class="relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
                                 <img src="__IMG_PRODUCT_2__" 
                                      alt="Resin Shield" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
                                 <span class="absolute top-4 left-4 px-3 py-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-xs uppercase tracking-wider text-amber-300">Keepsake</span>
                             </div>
                             <div class="flex justify-between items-baseline mb-2">
-                                <h3 class="fade-in-up font-luxury text-2xl text-white">Resins Shield (6-Inch)</h3>
-                                <span id="shield-price-display" class="fade-in-up text-xl font-bold text-amber-300">PKR 2,000/-</span>
+                                <h3 class="font-luxury text-2xl text-white">Resins Shield (6-Inch)</h3>
+                                <span id="shield-price-display" class="text-xl font-bold text-amber-300">PKR 2,000/-</span>
                             </div>
-                            <p class="fade-in-up text-gray-400 text-sm mb-4">6-inch solid resin plaque. Base price PKR 2,000/- with an option to embed up to 3 pictures (+PKR 100/- each).</p>
-                            <div class="fade-in-up mb-6 bg-white/[0.02] p-4 rounded-xl border border-white/5">
+                            <p class="text-gray-400 text-sm mb-4">6-inch solid resin plaque. Base price PKR 2,000/- with an option to embed up to 3 pictures (+PKR 100/- each).</p>
+                            
+                            <!-- Guaranteed Crisp Plus (+) and Minus (-) Configurator -->
+                            <div class="mb-6 bg-white/[0.02] p-4 rounded-xl border border-white/5">
                                 <div class="flex justify-between items-center mb-3">
                                     <label class="text-xs uppercase tracking-wider text-gray-300 font-semibold">Embedded Pictures (Max 3):</label>
                                     <span class="text-xs text-amber-300 font-mono">+PKR 100 / pic</span>
                                 </div>
                                 <div class="flex items-center gap-4 mb-3">
-                                    <div class="flex items-center border border-white/20 rounded-lg overflow-hidden bg-black/40">
-                                        <button type="button" onclick="adjustPhotos(-1)" class="px-3.5 py-1.5 text-gray-300 hover:bg-white/10"><i class="ph ph-minus"></i></button>
-                                        <span id="shield-photo-count" class="px-4 py-1.5 text-sm font-semibold text-white">0</span>
-                                        <button type="button" onclick="adjustPhotos(1)" class="px-3.5 py-1.5 text-gray-300 hover:bg-white/10"><i class="ph ph-plus"></i></button>
+                                    <div class="flex items-center border border-white/20 rounded-lg overflow-hidden bg-black/50">
+                                        <!-- Inline SVG Minus Button -->
+                                        <button type="button" onclick="adjustPhotos(-1)" aria-label="Decrease photos" 
+                                                class="w-10 h-9 flex items-center justify-center text-amber-300 hover:text-white hover:bg-white/15 transition active:scale-95">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                        </button>
+                                        
+                                        <span id="shield-photo-count" class="w-10 text-center font-mono text-sm font-bold text-white select-none">0</span>
+                                        
+                                        <!-- Inline SVG Plus Button -->
+                                        <button type="button" onclick="adjustPhotos(1)" aria-label="Increase photos" 
+                                                class="w-10 h-9 flex items-center justify-center text-amber-300 hover:text-white hover:bg-white/15 transition active:scale-95">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                        </button>
                                     </div>
                                     <span id="shield-photo-status" class="text-xs text-gray-400">0 pictures (+PKR 0/-)</span>
                                 </div>
+                                
                                 <div id="shield-uploader-box" class="hidden pt-3 border-t border-white/10">
                                     <label class="block text-xs uppercase tracking-wider text-amber-300 font-semibold mb-1">Upload Shield Pictures (Max 5MB each):</label>
                                     <input type="file" id="shield-file-input" multiple accept="image/jpeg,image/png,image/webp" onchange="handleSecureShieldFiles(this)" 
@@ -658,7 +645,7 @@ def storefront_view():
                         </div>
                         <div class="grid grid-cols-2 gap-3 pt-4 border-t border-white/5">
                             <button onclick="handleAddToCart('resin-shield')" class="btn-glass py-3 rounded-xl text-xs uppercase tracking-widest font-semibold flex items-center justify-center gap-2">
-                                <i class="ph ph-shopping-bag"></i> Add To Cart
+                                Add To Cart
                             </button>
                             <button onclick="handleQuickOrder('resin-shield')" class="btn-gold py-3 rounded-xl text-xs uppercase tracking-widest font-bold">
                                 Order Now
@@ -669,20 +656,20 @@ def storefront_view():
                     <!-- 3. Resin 3D Chess Keychains -->
                     <div class="resin-card fade-in-up rounded-3xl p-6 flex flex-col justify-between">
                         <div>
-                            <div class="fade-in-up relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
+                            <div class="relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
                                 <img src="__IMG_PRODUCT_3__" 
                                      alt="3D Chess Keychains" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
                                 <span class="absolute top-4 left-4 px-3 py-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-xs uppercase tracking-wider text-amber-300">Collectibles</span>
                             </div>
                             <div class="flex justify-between items-baseline mb-2">
-                                <h3 class="fade-in-up font-luxury text-2xl text-white">Resin 3D Chess Keychains</h3>
-                                <span class="fade-in-up text-xl font-bold text-amber-300">PKR 500/-</span>
+                                <h3 class="font-luxury text-2xl text-white">Resin 3D Chess Keychains</h3>
+                                <span class="text-xl font-bold text-amber-300">PKR 500/-</span>
                             </div>
-                            <p class="fade-in-up text-gray-400 text-sm mb-6">Hand-poured 3D Chess pieces (Knight, Queen, King) with heavy shimmer mica and durable gold keyrings.</p>
+                            <p class="text-gray-400 text-sm mb-6">Hand-poured 3D Chess pieces (Knight, Queen, King) with heavy shimmer mica and durable gold keyrings.</p>
                         </div>
                         <div class="grid grid-cols-2 gap-3 pt-4 border-t border-white/5">
                             <button onclick="handleAddToCart('chess-keychain')" class="btn-glass py-3 rounded-xl text-xs uppercase tracking-widest font-semibold flex items-center justify-center gap-2">
-                                <i class="ph ph-shopping-bag"></i> Add To Cart
+                                Add To Cart
                             </button>
                             <button onclick="handleQuickOrder('chess-keychain')" class="btn-gold py-3 rounded-xl text-xs uppercase tracking-widest font-bold">
                                 Order Now
@@ -693,20 +680,20 @@ def storefront_view():
                     <!-- 4. Resin Tray and Coaster Set -->
                     <div class="resin-card fade-in-up rounded-3xl p-6 flex flex-col justify-between">
                         <div>
-                            <div class="fade-in-up relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
+                            <div class="relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden mb-6 group">
                                 <img src="__IMG_PRODUCT_4__" 
                                      alt="Tray & Coaster Set" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
                                 <span class="absolute top-4 left-4 px-3 py-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-xs uppercase tracking-wider text-amber-300">Home Decor</span>
                             </div>
                             <div class="flex justify-between items-baseline mb-2">
-                                <h3 class="fade-in-up font-luxury text-2xl text-white">Resin Tray & Coaster Set</h3>
-                                <span class="fade-in-up text-xl font-bold text-amber-300">PKR 4,000/-</span>
+                                <h3 class="font-luxury text-2xl text-white">Resin Tray & Coaster Set</h3>
+                                <span class="text-xl font-bold text-amber-300">PKR 4,000/-</span>
                             </div>
-                            <p class="fade-in-up text-gray-400 text-sm mb-6">Complete luxury set: 1 signature serving tray and 4 matching coasters hand-embellished with gilded raw edges.</p>
+                            <p class="text-gray-400 text-sm mb-6">Complete luxury set: 1 signature serving tray and 6 matching coasters hand-embellished with gilded raw edges.</p>
                         </div>
                         <div class="grid grid-cols-2 gap-3 pt-4 border-t border-white/5">
                             <button onclick="handleAddToCart('tray-coaster-set')" class="btn-glass py-3 rounded-xl text-xs uppercase tracking-widest font-semibold flex items-center justify-center gap-2">
-                                <i class="ph ph-shopping-bag"></i> Add To Cart
+                                Add To Cart
                             </button>
                             <button onclick="handleQuickOrder('tray-coaster-set')" class="btn-gold py-3 rounded-xl text-xs uppercase tracking-widest font-bold">
                                 Order Now
@@ -723,10 +710,9 @@ def storefront_view():
                     <div class="fade-in-up">
                         <h3 class="font-luxury text-lg text-white">RESINS BY R</h3>
                         <p class="text-xs text-gray-400 mt-1">Direct inquiries & instant support:</p>
-                        <a href="https://wa.me/923058866692?text=Assalamo-alaikum%20Resins%20by%20R%2C%20I%20have%20an%20inquiry%20regarding%20bespoke%20orders." 
+                        <a href="https://wa.me/923058866692?text=Assalamo-alaikum%20Resins%20by%20R%2C%20I%20have%20an%20inquiry%20regarding%20orders." 
                            target="_blank" 
                            class="text-amber-300 hover:text-amber-200 text-sm font-semibold flex items-center justify-center md:justify-start gap-2 mt-2">
-                            <i class="ph ph-whatsapp-logo text-lg"></i>
                             <span>0305-8866692 (Ramsha Fatima)</span>
                         </a>
                     </div>
@@ -741,7 +727,7 @@ def storefront_view():
         <!-- POLICY PAGE -->
         <div id="page-policy" class="hidden min-h-screen pt-12 pb-48 px-6 max-w-4xl mx-auto relative z-10">
             <button onclick="showPage('main')" class="mb-8 btn-glass px-5 py-2.5 rounded-full text-xs uppercase tracking-widest text-amber-300 flex items-center gap-2">
-                <i class="ph ph-arrow-left"></i> Return to Store
+                ← Return to Store
             </button>
             <div class="resin-card p-8 md:p-12 rounded-3xl border border-white/10">
                 <h1 class="font-luxury text-3xl md:text-4xl text-white mb-2">Studio Policies</h1>
@@ -791,10 +777,7 @@ def storefront_view():
         <div id="cart-drawer-backdrop" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden" onclick="toggleCartDrawer(false)"></div>
         <aside id="cart-drawer" class="fixed top-0 right-0 h-full w-full max-w-md bg-[#0a0b0e] border-l border-white/10 z-50 translate-x-full transition-transform duration-500 ease-in-out flex flex-col justify-between shadow-2xl">
             <div class="p-6 border-b border-white/10 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <i class="ph ph-handbag text-amber-300 text-2xl"></i>
-                    <h3 class="font-luxury text-xl text-white tracking-wide">Your Resin Bag</h3>
-                </div>
+                <h3 class="font-luxury text-xl text-white tracking-wide">Your Resin Bag</h3>
                 <button onclick="toggleCartDrawer(false)" class="text-gray-400 hover:text-white text-2xl p-1">&times;</button>
             </div>
             <div id="cart-items-container" class="p-6 overflow-y-auto space-y-4 flex-grow"></div>
@@ -830,7 +813,7 @@ def storefront_view():
                 </div>
 
                 <div class="p-3.5 rounded-xl bg-amber-400/10 border border-amber-300/30 mb-5 text-xs text-amber-200">
-                    <div class="font-bold flex items-center gap-1.5 mb-0.5"><i class="ph ph-wallet text-sm"></i> JazzCash / Raast Payment Details:</div>
+                    <div class="font-bold flex items-center gap-1.5 mb-0.5">JazzCash / Raast Payment Details:</div>
                     <div>Account Number: <strong class="text-white font-mono">0305-8866692</strong></div>
                     <div>Account Title: <strong class="text-white">Ramsha Fatima</strong></div>
                 </div>
@@ -875,9 +858,6 @@ def storefront_view():
         <!-- SUCCESS CONFIRMATION MODAL -->
         <div id="success-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
             <div class="resin-card bg-[#0e0f14] w-full max-w-lg rounded-3xl border border-amber-300/40 p-8 text-center shadow-2xl relative">
-                <div class="w-16 h-16 mx-auto mb-4 rounded-full border border-amber-300/60 bg-amber-300/10 flex items-center justify-center">
-                    <i class="ph ph-check text-amber-300 text-3xl"></i>
-                </div>
                 <span class="text-xs uppercase tracking-widest text-amber-300 font-semibold">Commission Received</span>
                 <h3 class="font-luxury text-2xl text-white mt-1 mb-2">Order Confirmed!</h3>
                 <p class="text-xs text-gray-400 mb-6">Your order has been saved to our studio database. Quote your Order ID below:</p>
@@ -886,7 +866,6 @@ def storefront_view():
                     <span id="confirmed-order-id" class="font-mono text-2xl font-bold text-amber-300 tracking-wider">RBR-00000</span>
                 </div>
                 <a id="whatsapp-order-link" href="#" target="_blank" class="btn-gold w-full py-4 rounded-xl text-xs uppercase tracking-widest font-bold flex items-center justify-center gap-2 mb-3">
-                    <i class="ph ph-whatsapp-logo text-lg"></i>
                     <span>Confirm on WhatsApp (0305-8866692)</span>
                 </a>
                 <button onclick="closeSuccessModal()" class="text-xs text-gray-400 hover:text-white uppercase tracking-wider py-2">
@@ -896,7 +875,6 @@ def storefront_view():
         </div>
 
         <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#101115] border border-amber-300/50 text-white px-6 py-3 rounded-full text-xs uppercase tracking-widest shadow-2xl opacity-0 pointer-events-none transition-all duration-300 z-50 flex items-center gap-2">
-            <i class="ph ph-sparkle text-amber-300 text-base"></i>
             <span id="toast-msg">Item added to cart</span>
         </div>
 
@@ -927,22 +905,21 @@ def storefront_view():
                 }[tag] || tag));
             }
 
-            // ================= PRECISE STARTING ANIMATION =================
+            // ================= CALLIGRAPHY INTRO ANIMATION TIMELINE =================
             function setupIntroSequence() {
-                const laserPath = document.getElementById('r-laser-path');
-                if (laserPath) {
-                    const totalLen = laserPath.getTotalLength();
-                    laserPath.style.setProperty('--r-length', totalLen);
-                    laserPath.style.strokeDasharray = totalLen;
-                    laserPath.style.strokeDashoffset = totalLen;
+                const calligPath = document.getElementById('calligraphy-r-path');
+                if (calligPath) {
+                    const totalLen = calligPath.getTotalLength();
+                    calligPath.style.setProperty('--r-length', totalLen);
+                    calligPath.style.strokeDasharray = totalLen;
+                    calligPath.style.strokeDashoffset = totalLen;
                 }
 
-                // Smoothly dismiss at 4.6s after backlight shockwave floods screen
                 setTimeout(() => {
                     if (!introDismissed) {
                         dismissIntro();
                     }
-                }, 4600);
+                }, 4700);
             }
 
             function dismissIntro() {
@@ -1477,7 +1454,7 @@ def admin_view():
     with col_l:
         st.write(f"Logged in as: **{sanitize_admin_text(ADMIN_NAME)}**")
     with col_m:
-        if st.button("Sync with Google Sheet"):
+        if st.button("Sync with DB"):
             if now - st.session_state["last_admin_fetch"] < 5.0:
                 st.warning("Please wait 5 seconds before refreshing Google Sheets.")
             else:
@@ -1504,7 +1481,7 @@ def admin_view():
         """)
         c1, c2 = st.columns(2)
         with c1:
-            if st.button("Yes, Confirm & Update Google Sheets", use_container_width=True):
+            if st.button("Confirm & Update Google Sheets", use_container_width=True):
                 success = mark_order_dispatched(target.get("order_id"))
                 if success:
                     st.success(f"Order #{order_id_safe} successfully marked as Dispatched in Google Sheets!")
